@@ -21,6 +21,31 @@ pub struct GpuInfo {
 }
 
 impl HardwareInfo {
+    /// Stable directory token: OS & arch, CPU model, GPU(s).
+    ///
+    /// Collapses whitespace and punctuation for use in filenames. A bench `run_id`
+    /// (timestamp) should be appended by the caller, e.g. `{label}__{run_id}`.
+    pub fn report_path_label(&self) -> String {
+        let cpu = sanitize_path_token(&strip_tm_noise(&self.cpu_brand));
+        let gpu = gpu_path_token(&self.gpu_info);
+
+        let os = self.os.as_str();
+
+        let mut s = format!("{os}-{arch}__CPU-{cpu}__GPU-{gpu}", arch = std::env::consts::ARCH);
+
+        if s.len() > 200 {
+            s.truncate(200);
+            while s.ends_with('_') {
+                s.pop();
+            }
+        }
+        if s.is_empty() {
+            "unknown-host".into()
+        } else {
+            s
+        }
+    }
+
     pub fn summary(&self) -> String {
         let mut lines = vec![
             format!("OS          : {} {}", self.os, self.os_version),
@@ -45,6 +70,64 @@ impl HardwareInfo {
         }
         lines.join("\n")
     }
+}
+
+fn strip_tm_noise(s: &str) -> String {
+    s.replace("(R)", "")
+        .replace("(r)", "")
+        .replace("(TM)", "")
+        .replace("(tm)", "")
+        .replace('™', "")
+        .replace('®', "")
+}
+
+fn sanitize_path_token(raw: &str) -> String {
+    let stripped = strip_tm_noise(raw.trim());
+    let mut out = String::with_capacity(stripped.len());
+    let mut pending_sep = false;
+
+    for ch in stripped.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if pending_sep && !out.is_empty() {
+                out.push('_');
+            }
+            pending_sep = false;
+            out.push(ch);
+            continue;
+        }
+
+        // Treat separators / punctuation clusters as single underscore between words.
+        if ch.is_ascii_whitespace() || matches!(ch, '-' | '_' | '.' | '+' | '/') {
+            if !out.is_empty() {
+                pending_sep = true;
+            }
+            continue;
+        }
+    }
+
+    let out = if out.is_empty() {
+        return "unknown".into();
+    } else if out.len() > 96 {
+        out[..96].trim_end_matches('_').to_string()
+    } else {
+        out
+    };
+
+    out
+}
+
+fn gpu_path_token(gpus: &[GpuInfo]) -> String {
+    if gpus.is_empty() {
+        return "none".into();
+    }
+    if gpus.len() == 1 {
+        return sanitize_path_token(&gpus[0].name);
+    }
+    format!(
+        "{}_plus{}",
+        sanitize_path_token(&gpus[0].name),
+        gpus.len() - 1
+    )
 }
 
 pub fn detect() -> HardwareInfo {
@@ -142,4 +225,55 @@ fn detect_gpus() -> Vec<GpuInfo> {
     }
 
     gpus
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{GpuInfo, HardwareInfo};
+
+    #[test]
+    fn report_path_label_matches_known_snapshot_host() {
+        let hw = HardwareInfo {
+            os: "windows".into(),
+            os_version: "11".into(),
+            cpu_brand: "Intel(R) Core(TM) Ultra 9 285K".into(),
+            cpu_cores_physical: 24,
+            cpu_cores_logical: 24,
+            ram_total_gb: 31.4,
+            gpu_info: vec![GpuInfo {
+                name: "NVIDIA GeForce RTX 4080 SUPER".into(),
+                vendor: "NVIDIA".into(),
+                vram_mb: Some(16376),
+            }],
+            llama_cpp_version: None,
+        };
+
+        assert_eq!(
+            hw.report_path_label(),
+            "windows-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER"
+        );
+    }
+
+    #[test]
+    fn report_path_label_without_gpu() {
+        let hw = HardwareInfo {
+            os: "linux".into(),
+            os_version: "6.12".into(),
+            cpu_brand: "AMD Ryzen 7 9700X".into(),
+            cpu_cores_physical: 8,
+            cpu_cores_logical: 16,
+            ram_total_gb: 64.0,
+            gpu_info: vec![],
+            llama_cpp_version: None,
+        };
+
+        assert_eq!(
+            hw.report_path_label(),
+            format!(
+                "{}-{}__CPU-AMD_Ryzen_7_9700X__GPU-none",
+                "linux",
+                std::env::consts::ARCH,
+            ),
+        );
+    }
 }

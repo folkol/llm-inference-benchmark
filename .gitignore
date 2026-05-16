@@ -1,7 +1,7 @@
 /target
 
-# Local benchmark outputs / scratch logs (keep pinned sample under reports/latest/)
+# Local/ephemeral benchmark runs (--out defaults here; gitignored except samples/).
 reports/*
-!reports/latest/
-!reports/latest/**
+!reports/samples/
+!reports/samples/**
 e2e-out.txt

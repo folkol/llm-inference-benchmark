@@ -43,9 +43,9 @@ pub enum Commands {
         /// Path to benchmark config file
         #[arg(short, long, default_value = "bench.toml")]
         config: PathBuf,
-        /// Output directory for this run
-        #[arg(short, long, default_value = "reports/latest")]
-        out: PathBuf,
+        /// Output directory; omit to write under `./reports/<os-arch>__CPU-…__GPU-…__<run-id>/`.
+        #[arg(short, long, value_name = "DIR")]
+        out: Option<PathBuf>,
         /// Comma-separated device overrides (cpu,gpu,auto); empty = use config
         #[arg(long, default_value = "")]
         devices: String,
@@ -56,10 +56,9 @@ pub enum Commands {
         #[arg(long, default_value_t = 1)]
         runs: u32,
     },
-    /// Open the HTML report for the most-recent run
+    /// Directory that contains `report.html`; omit to open the newest under `./reports/`.
     Report {
-        #[arg(default_value = "reports/latest")]
-        dir: PathBuf,
+        dir: Option<PathBuf>,
     },
     /// Download and install the right llama.cpp binaries for this machine
     Setup {
@@ -150,7 +149,7 @@ pub fn cmd_models_fetch(config_path: &Path) -> anyhow::Result<()> {
 
 pub fn cmd_bench_run(
     config_path: &Path,
-    out_dir: &Path,
+    out: Option<PathBuf>,
     devices_filter: &str,
     models_filter: &str,
     warm_runs: u32,
@@ -176,10 +175,22 @@ pub fn cmd_bench_run(
     let hw = hardware::detect();
     println!("{}", hw.summary());
 
-    std::fs::create_dir_all(out_dir)?;
+    let run_id = runner::fresh_run_id();
+    let out_dir = match out {
+        Some(p) => p,
+        None => PathBuf::from("reports").join(format!("{}__{}", hw.report_path_label(), run_id)),
+    };
 
-    let results = runner::run_matrix(&cfg, &hw, out_dir)?;
-    report::write_all(&results, &hw, &cfg, out_dir)?;
+    println!(
+        "{} {}",
+        "Output dir:".cyan().bold(),
+        out_dir.display()
+    );
+
+    std::fs::create_dir_all(&out_dir)?;
+
+    let results = runner::run_matrix(&cfg, &hw, &out_dir, run_id)?;
+    report::write_all(&results, &hw, &cfg, &out_dir)?;
 
     let html = out_dir.join("report.html");
     println!(
@@ -210,13 +221,76 @@ pub fn cmd_compare(results: &[PathBuf], out: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn cmd_report_open(dir: &Path) -> anyhow::Result<()> {
+pub fn cmd_report_open(dir: Option<PathBuf>) -> anyhow::Result<()> {
+    let dir = match dir {
+        Some(p) => p,
+        None => newest_report_dir(Path::new("reports"))?,
+    };
+
     let html = dir.join("report.html");
     if !html.exists() {
-        anyhow::bail!("No report found at {}", html.display());
+        anyhow::bail!("No report.html in {}", dir.display());
     }
     open_browser(&html)?;
     Ok(())
+}
+
+fn newest_report_dir(base: &Path) -> anyhow::Result<PathBuf> {
+    if !base.is_dir() {
+        anyhow::bail!(
+            "No '{}' directory here. Run `{}` first, or pass the report folder explicitly.",
+            base.display(),
+            "llmb bench".yellow()
+        );
+    }
+
+    /// Default runs land in `./reports/<slug>/`; curated runs live in `./reports/samples/<slug>/`.
+    const MAX_SCAN_DEPTH: usize = 8;
+
+    let mut best: Option<(std::time::SystemTime, PathBuf)> = None;
+    let mut stack: Vec<(PathBuf, usize)> = vec![(base.to_path_buf(), 0)];
+
+    while let Some((path, depth)) = stack.pop() {
+        if path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|name| name.starts_with('.'))
+        {
+            continue;
+        }
+
+        let report_html = path.join("report.html");
+        if report_html.is_file() {
+            let mtime = std::fs::metadata(&report_html)?.modified()?;
+            if best
+                .as_ref()
+                .map_or(true, |(t, _)| mtime > *t)
+            {
+                best = Some((mtime, path));
+            }
+            continue;
+        }
+
+        if depth >= MAX_SCAN_DEPTH || !path.is_dir() {
+            continue;
+        }
+
+        for entry in std::fs::read_dir(&path)? {
+            let entry = entry?;
+            let child = entry.path();
+            stack.push((child, depth + 1));
+        }
+    }
+
+    match best {
+        Some((_, p)) => Ok(p),
+        None => anyhow::bail!(
+            "No report.html found under '{}' (searched nested folders).\n\
+             Try `{}` after a benchmark run.",
+            base.display(),
+            "llmb bench".yellow()
+        ),
+    }
 }
 
 fn open_browser(path: &Path) -> anyhow::Result<()> {

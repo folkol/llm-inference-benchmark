@@ -62,7 +62,15 @@ llmb bench
 llmb report
 ```
 
-The report is written to `reports/latest/report.html`.
+The default output folder is `./reports/<os-arch>__CPU-…__GPU-…__<run-id>/` (detected hardware plus a UTC `run_id`). Use `--out DIR` for a stable path (`llmb bench --out reports/latest` restores the previous layout).
+
+Without arguments, `llmb report` opens the newest `report.html` anywhere under `./reports/` (recursive, so it includes `./reports/samples/...`).
+
+### Multiple machines (Windows, Linux, other PCs)
+
+Every run defaults to `./reports/<os-arch>__CPU-…__GPU-…__<run-id>/`, so hosts usually get **distinct directory names**: e.g. `linux-x86_64__…` vs `windows-x86_64__…`, and different GPUs or CPUs show up in the slug. Repeated runs on the same box differ by `run-id` (UTC timestamp).
+
+Runs under `./reports/` are **local-only** unless you publish them on purpose. To keep curated reports in git (benchmarks from this machine under Linux, or tarballs copied from another computer), drop each finished run folder under **`reports/samples/`** — one subdirectory per run. That tree is tracked; anything else directly under `./reports/` stays ignored.
 
 ## GPU benchmarking
 
@@ -84,8 +92,9 @@ llmb bench                         # run with bench.toml defaults
 llmb bench --devices cpu,gpu       # override devices
 llmb bench --models Qwen2.5-0.5B   # run only matching models
 llmb bench --runs 5                # 5 warm repetitions instead of 3
-llmb bench --out reports/my-run    # custom output directory
-llmb report reports/my-run         # open a specific run's report
+llmb bench --out reports/my-run    # fixed directory (overwrite same path each run)
+llmb report                        # newest report under ./reports/
+llmb report reports/my-run         # open one run explicitly
 ```
 
 ## Output files

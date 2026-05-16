@@ -61,20 +61,24 @@ impl From<ScoreBreakdown> for ScoreBreakdownSer {
     }
 }
 
+pub fn fresh_run_id() -> String {
+    format!("{}", Utc::now().format("%Y%m%dT%H%M%S"))
+}
+
 pub fn run_matrix(
     cfg: &BenchConfig,
     hw: &HardwareInfo,
     out_dir: &Path,
+    run_id: String,
 ) -> anyhow::Result<RunResults> {
     let server_exe = assets::find_llama_server()?;
     let model_cache = assets::cache_dir()?;
 
     warn_if_low_memory(cfg);
 
-    let run_id = format!("{}", Utc::now().format("%Y%m%dT%H%M%S"));
     let mut results = RunResults {
         schema_version: 1,
-        run_id: run_id.clone(),
+        run_id,
         timestamp: Utc::now().to_rfc3339(),
         hardware: hw.clone(),
         scenarios: Vec::new(),
