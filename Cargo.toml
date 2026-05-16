@@ -1,0 +1,61 @@
+[package]
+name = "llmb"
+version = "0.1.0"
+edition = "2021"
+description = "Cross-platform LLM inference benchmark tool"
+authors = []
+
+[lib]
+name = "llmb"
+path = "src/lib.rs"
+
+[[bin]]
+name = "llmb"
+path = "src/main.rs"
+
+[dependencies]
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Error handling
+anyhow = "1"
+
+# Config
+toml = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# HTTP downloads
+reqwest = { version = "0.11", features = ["blocking", "stream", "json"] }
+
+# Progress bar
+indicatif = "0.17"
+
+# SHA256 verification
+sha2 = "0.10"
+hex = "0.4"
+
+# Async runtime (used by reqwest)
+tokio = { version = "1", features = ["full"] }
+
+# Colored terminal output
+colored = "2"
+
+# Platform dirs (cache locations)
+dirs = "5"
+
+# CSV output
+csv = "1"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# System info (CPU, RAM)
+sysinfo = "0.29"
+
+# Byte formatting
+bytesize = "1"
+
+[profile.release]
+opt-level = 3
+strip = true
