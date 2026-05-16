@@ -63,6 +63,7 @@ fn test_workload_ids_are_unique() {
 
 fn make_sample(tps: f64, load_ms: f64, ttft_ms: f64) -> RawSample {
     RawSample {
+        completion: None,
         wall_time_ms: ttft_ms + 100.0,
         load_time_ms: load_ms,
         prompt_tokens: 128,
@@ -167,6 +168,9 @@ fn test_score_components_sum_correctly() {
 
 #[test]
 fn test_llama_prompt_building() {
+    // build_prompt returns only the user content; system prompt is passed
+    // separately to llama-cli via --system-prompt so the model's embedded
+    // chat template (tokenizer.chat_template in the GGUF) is applied.
     let workload = WorkloadConfig {
         id: "test".to_string(),
         label: "Test".to_string(),
@@ -175,8 +179,10 @@ fn test_llama_prompt_building() {
         max_tokens: 100,
     };
     let prompt = llmb::llama::build_prompt(&workload);
-    assert!(prompt.contains("You are a robot."));
-    assert!(prompt.contains("Hello"));
+    // The user prompt is returned verbatim; system is NOT embedded here.
+    assert_eq!(prompt, "Hello");
+    // The system prompt lives on the workload struct, accessible separately.
+    assert_eq!(workload.system.as_deref(), Some("You are a robot."));
 }
 
 #[test]

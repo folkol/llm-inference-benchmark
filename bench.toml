@@ -2,15 +2,25 @@
 # Copy this to bench.toml and edit as needed.
 # Run `llmb init` to place a copy in the current directory.
 
-# Devices to benchmark. Supported: "cpu", "gpu", "auto"
-# Comment out "gpu" if no GPU is available.
-devices = ["cpu"]
+# Devices to benchmark.
+#   "cpu"   — all layers on CPU (--n-gpu-layers 0)
+#   "gpu"   — all layers on GPU (--n-gpu-layers -1)
+#   "mixed" — explicit partial offload (--n-gpu-layers = mixed_gpu_layers below)
+#   "auto"  — let llama.cpp decide based on available VRAM
+#
+# On a CPU-only machine keep ["cpu"].
+# On a GPU machine use ["cpu", "gpu"] for the standard comparison.
+# Add "mixed" manually if you want to test partial GPU offload.
+devices = ["cpu", "gpu"]
 
 # Warm repetitions per (model × workload × device) scenario
-warm_runs = 3
+warm_runs = 1
 
-# Batch sizes for concurrent request benchmarks (requires llama-server on PATH)
-batch_sizes = [1, 4, 8]
+# Concurrent batch benchmarks are intentionally disabled.
+# Each scenario measures:
+#   1. first request after model load
+#   2. warm_runs sequential requests on the already-loaded model
+batch_sizes = []
 
 # Tokens to generate per completion (can be overridden per workload)
 max_tokens = 256
@@ -18,78 +28,66 @@ max_tokens = 256
 # CPU threads (0 = auto-detect)
 cpu_threads = 0
 
-# GPU layers to offload (-1 = all layers, 0 = CPU only)
+# GPU layers to offload when device = "gpu" (-1 = all layers)
 gpu_layers = -1
+
+# GPU layers to offload when device = "mixed".
+# Tune to sit just below your VRAM limit for the most interesting results.
+#
+# Rough total layers per architecture (Q4_K_M):
+#   0.5–1.5B  ~22–28    7–8B  ~32    14B  ~40    32B  ~64
+#
+# Example: 16 puts the first 16 layers on GPU, the rest on CPU.
+mixed_gpu_layers = 16
 
 # ─── Scoring weights (must sum to 1.0) ───────────────────────────────────────
 [scoring]
 weight_tokens_per_sec    = 0.40   # generation speed
-weight_load_time         = 0.20   # cold-start model load latency
-weight_ttft              = 0.20   # time to first token (cold)
-weight_batch_throughput  = 0.20   # batch tokens/sec
+weight_load_time         = 0.30   # server start + model load latency
+weight_ttft              = 0.30   # time to first token (first request)
+weight_batch_throughput  = 0.00   # disabled
 
 # ─── Models ──────────────────────────────────────────────────────────────────
-# Small models suitable for any machine (CPU-friendly).
-# Remove or comment out models you don't want to benchmark.
-# Run `llmb models fetch` to download all listed models.
+# Models are ordered small → large so the VRAM cliff is visible in plots.
+# Mix of Qwen3 (latest Alibaba series, Apr 2025) and Llama 3.2/3.1 (Meta)
+# to compare two architectures side-by-side at similar parameter counts.
+#
+# Confirmed Q4_K_M sizes (bartowski GGUFs):
+#
+#   Model          Size      16 GB GPU   32 GB CPU   Mac mini 16 GB
+#   ─────────────  ────────  ─────────   ─────────   ──────────────
+#   Qwen3-0.6B     0.48 GB   fits        fits        fits
+#   Llama-3.2-1B   0.74 GB   fits        fits        fits
+#   Qwen3-1.7B     1.28 GB   fits        fits        fits
+#   Llama-3.2-3B   2.02 GB   fits        fits        fits
+#   Qwen3-4B       2.50 GB   fits        fits        fits
+#   Qwen3-8B       5.03 GB   fits        fits        fits
+#   Llama-3.1-8B   4.92 GB   fits        fits        fits
+#   Qwen3-14B      9.00 GB   fits        fits        fits (tight)
+#   Qwen3-32B     ~20 GB     OVERFLOWS   fits        OVERFLOWS
+#
+# When a model overflows VRAM, llama.cpp shuffles layers between GPU and CPU,
+# causing a sharp throughput drop — the "cliff" you want to see in the plots.
+#
+# Comment out any models you don't want to download or benchmark.
+# Run `llmb models fetch` to download all active models.
+
+# ── Qwen3 (Alibaba, Apr 2025) ──────────────────────────────────────────────
+[[models]]
+name         = "Qwen3-0.6B-Q4_K_M"
+filename     = "Qwen_Qwen3-0.6B-Q4_K_M.gguf"
+url          = "https://huggingface.co/bartowski/Qwen_Qwen3-0.6B-GGUF/resolve/main/Qwen_Qwen3-0.6B-Q4_K_M.gguf"
+params       = "0.6B"
+quantization = "Q4_K_M"
+context_length = 1024
 
 [[models]]
-name         = "Qwen2.5-0.5B-Q4_K_M"
-filename     = "qwen2.5-0.5b-instruct-q4_k_m.gguf"
-url          = "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf"
-params       = "0.5B"
+name         = "Qwen3-4B-Q4_K_M"
+filename     = "Qwen_Qwen3-4B-Q4_K_M.gguf"
+url          = "https://huggingface.co/bartowski/Qwen_Qwen3-4B-GGUF/resolve/main/Qwen_Qwen3-4B-Q4_K_M.gguf"
+params       = "4B"
 quantization = "Q4_K_M"
-context_length = 2048
-
-[[models]]
-name         = "Qwen2.5-1.5B-Q4_K_M"
-filename     = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
-url          = "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf"
-params       = "1.5B"
-quantization = "Q4_K_M"
-context_length = 2048
-
-[[models]]
-name         = "Qwen2.5-3B-Q4_K_M"
-filename     = "qwen2.5-3b-instruct-q4_k_m.gguf"
-url          = "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf"
-params       = "3B"
-quantization = "Q4_K_M"
-context_length = 2048
-
-[[models]]
-name         = "Llama-3.2-1B-Q4_K_M"
-filename     = "llama-3.2-1b-instruct-q4_k_m.gguf"
-url          = "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf"
-params       = "1B"
-quantization = "Q4_K_M"
-context_length = 2048
-
-[[models]]
-name         = "Llama-3.2-3B-Q4_K_M"
-filename     = "llama-3.2-3b-instruct-q4_k_m.gguf"
-url          = "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf"
-params       = "3B"
-quantization = "Q4_K_M"
-context_length = 2048
-
-# ─── Larger models (comment in if machine has enough RAM / VRAM) ──────────────
-
-# [[models]]
-# name         = "Mistral-7B-Q4_K_M"
-# filename     = "mistral-7b-instruct-v0.3-q4_k_m.gguf"
-# url          = "https://huggingface.co/bartowski/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf"
-# params       = "7B"
-# quantization = "Q4_K_M"
-# context_length = 4096
-
-# [[models]]
-# name         = "Llama-3.1-8B-Q4_K_M"
-# filename     = "meta-llama-3.1-8b-instruct-q4_k_m.gguf"
-# url          = "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"
-# params       = "8B"
-# quantization = "Q4_K_M"
-# context_length = 4096
+context_length = 1024
 
 # ─── Workloads (optional – defaults are used if this section is omitted) ──────
 # [[workloads]]

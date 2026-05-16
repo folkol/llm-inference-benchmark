@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 /// One raw timing sample from a single llama.cpp invocation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawSample {
+    /// Decoded assistant text from the server (best-effort parse of JSON payload).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completion: Option<String>,
     /// Total wall-clock time for the entire process (ms)
     pub wall_time_ms: f64,
     /// Time from process start to model fully loaded (ms)
@@ -24,7 +27,7 @@ pub struct RawSample {
 }
 
 /// Aggregated statistics across multiple RawSamples.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AggregatedMetrics {
     pub n: usize,
     pub tokens_per_sec_mean: f64,

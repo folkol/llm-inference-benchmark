@@ -8,7 +8,7 @@ pub fn default_workloads() -> Vec<WorkloadConfig> {
             label: "Summarization".to_string(),
             system: Some("You are a helpful assistant. Be concise.".to_string()),
             prompt: SUMMARIZE_PROMPT.to_string(),
-            max_tokens: 256,
+            max_tokens: 10,
         },
         WorkloadConfig {
             id: "code".to_string(),
@@ -27,8 +27,8 @@ pub fn default_workloads() -> Vec<WorkloadConfig> {
     ]
 }
 
-/// Fixed document for summarization – length ~600 tokens.
-const SUMMARIZE_PROMPT: &str = r#"Summarize the following article in three concise bullet points.
+/// Fixed document for summarization - length ~600 tokens.
+const SUMMARIZE_PROMPT: &str = r#"Summarize the following article in one succinct sentence.
 
 Article:
 The field of artificial intelligence has undergone a remarkable transformation over the past decade.
@@ -57,7 +57,7 @@ fine-tune, and deploy capable language models on consumer hardware. Quantization
 democratized access by allowing multi-billion parameter models to run on machines with modest GPU
 memory or even on CPUs alone, expanding the potential user base to millions of developers worldwide.
 
-Summarize the above in three bullet points:"#;
+Summarize the above in one succinct sentence:"#;
 
 /// Fixed coding task with a clear specification.
 const CODE_PROMPT: &str = r#"Write a Python function called `merge_sorted_arrays` that merges two sorted arrays into a single sorted array without using the built-in `sorted()` function or `list.sort()`. The function should:

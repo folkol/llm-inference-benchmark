@@ -9,7 +9,7 @@ use crate::{
     assets,
     config::{BenchConfig, ModelConfig, WorkloadConfig},
     hardware::HardwareInfo,
-    llama::{self, LlamaArgs},
+    interrupt,
     metrics::{AggregatedMetrics, BatchMetrics, RawSample},
     scoring::{self, ScoreBreakdown},
 };
@@ -66,8 +66,10 @@ pub fn run_matrix(
     hw: &HardwareInfo,
     out_dir: &Path,
 ) -> anyhow::Result<RunResults> {
-    let cli_exe = assets::find_llama_cli()?;
+    let server_exe = assets::find_llama_server()?;
     let model_cache = assets::cache_dir()?;
+
+    warn_if_low_memory(cfg);
 
     let run_id = format!("{}", Utc::now().format("%Y%m%dT%H%M%S"));
     let mut results = RunResults {
@@ -82,6 +84,11 @@ pub fn run_matrix(
     let mut done = 0usize;
 
     for model in &cfg.models {
+        if interrupt::requested() {
+            println!("\n{}", "Benchmark stopped by user.".yellow());
+            break;
+        }
+
         let model_path = model_cache.join(&model.filename);
         if !model_path.exists() {
             eprintln!(
@@ -93,19 +100,25 @@ pub fn run_matrix(
         }
 
         for device in &cfg.devices {
+            if interrupt::requested() { break; }
             for workload in &cfg.workloads {
+                if interrupt::requested() { break; }
+
                 done += 1;
-                println!(
-                    "\n[{}/{}] {} | {} | device={}",
+                let scenario_timeout = estimate_timeout_secs(model, device);
+
+                            println!(
+                    "\n[{}/{}] {} | {} | device={} (timeout={}s)",
                     done,
                     total,
                     model.name.bold(),
                     workload.label,
-                    device.cyan()
+                    device.cyan(),
+                    scenario_timeout,
                 );
 
                 let scenario = run_scenario(
-                    &cli_exe,
+                    &server_exe,
                     &model_path,
                     model,
                     workload,
@@ -132,7 +145,7 @@ pub fn run_matrix(
 }
 
 fn run_scenario(
-    cli_exe: &Path,
+    server_exe: &Path,
     model_path: &Path,
     model: &ModelConfig,
     workload: &WorkloadConfig,
@@ -140,63 +153,78 @@ fn run_scenario(
     cfg: &BenchConfig,
     _out_dir: &Path,
 ) -> anyhow::Result<ScenarioResult> {
-    let base_args = LlamaArgs {
-        exe: cli_exe,
-        model: model_path,
-        model_cfg: model,
-        workload,
-        cpu_threads: cfg.cpu_threads,
-        gpu_layers: cfg.gpu_layers,
-        device,
-        seed: 42,
-    };
+    // ── RAM safety check ─────────────────────────────────────────────────────
+    // Refuse to spawn llama-cli if there is not enough free RAM.
+    // A shortage causes the OS to thrash: other applications freeze, and even
+    // killing llama-cli may take minutes.  Better to record a skipped scenario
+    // than to destabilize the machine.
+    //
+    // Heuristic: model weights (Q4_K_M ≈ 0.6 GB per billion params) +
+    //            KV-cache headroom (≈ 50 % of weight size).
+    // For GPU runs the model fits in VRAM so we still check system RAM for the
+    // KV-cache buffer but give a smaller threshold.
+    if let Some(reason) = check_ram_available(model, device) {
+        println!("  {}", reason.yellow());
+        return Ok(skipped_scenario(model, workload, device));
+    }
 
-    // 1. Cold start (1 run)
-    print!("  cold start ... ");
-    let cold_sample = llama::run_cold(&base_args)?;
-    println!(
-        "load={:.0}ms  ttft={:.0}ms  tps={:.1}",
-        cold_sample.load_time_ms,
-        cold_sample.ttft_ms,
-        cold_sample.tokens_per_sec
-    );
+    let timeout_secs = estimate_timeout_secs(model, device);
+
+    let port = 18765u16;
+    let parallel = 1;
+    let server_start = Instant::now();
+    let mut server = spawn_server(server_exe, model_path, model, device, cfg, port, parallel)?;
+    let client = reqwest::blocking::Client::new();
+    let base_url = format!("http://127.0.0.1:{}", port);
+    let url = format!("{}/completion", base_url);
+
+    let scenario_result = (|| -> anyhow::Result<ScenarioResult> {
+        print!("  server load ... ");
+        let _ = std::io::Write::flush(&mut std::io::stdout());
+        if !wait_for_server_ready(
+            &client,
+            &base_url,
+            std::time::Duration::from_secs(timeout_secs),
+        ) {
+            anyhow::bail!("llama-server did not finish loading within {}s", timeout_secs);
+        }
+        let load_ms = server_start.elapsed().as_millis() as f64;
+        println!("ready in {:.0}ms", load_ms);
+
+        // 1. Cold-ish sample: server startup/model load + first completion.
+        let cold_sample = run_server_completion(
+            &client,
+            &url,
+            workload,
+            42,
+            load_ms,
+            timeout_secs,
+            "cold request",
+        )?;
     let cold_samples = vec![cold_sample];
     let cold_metrics = AggregatedMetrics::from_samples(&cold_samples);
 
-    // 2. Warm runs (cfg.warm_runs repetitions)
+    // 2. Warm runs reuse the loaded server.
     let mut warm_samples = Vec::new();
-    print!("  warm runs ({}x) ... ", cfg.warm_runs);
-    let t = Instant::now();
-    for i in 0..cfg.warm_runs {
-        let sample = llama::run_cold(&LlamaArgs {
-            seed: 42 + i as u64,
-            ..base_args
-        })?;
+    let warm_n = cfg.warm_runs;
+    for i in 0..warm_n {
+        let label = format!("warm {}/{}", i + 1, warm_n);
+        let sample = run_server_completion(
+            &client,
+            &url,
+            workload,
+            42 + i as u64,
+            0.0,
+            timeout_secs,
+            &label,
+        )?;
         warm_samples.push(sample);
     }
     let warm_metrics = AggregatedMetrics::from_samples(&warm_samples);
-    println!(
-        "done in {:.1}s – mean tps={:.1}",
-        t.elapsed().as_secs_f64(),
-        warm_metrics.tokens_per_sec_mean
-    );
 
-    // 3. Batch runs using llama-server (best-effort; skip gracefully)
-    let batch_results = run_batch_scenarios(
-        model_path,
-        model,
-        workload,
-        device,
-        cfg,
-    );
-
-    // 4. Compute score
-    let batch_tps = batch_results
-        .iter()
-        .map(|b| b.throughput_tokens_per_sec)
-        .fold(0.0_f64, f64::max);
-
-    let breakdown = scoring::compute_score(&warm_metrics, &cold_metrics, batch_tps, &cfg.scoring);
+    // 3. Compute score. Batch throughput is intentionally not measured.
+    let batch_results = Vec::new();
+    let breakdown = scoring::compute_score(&warm_metrics, &cold_metrics, 0.0, &cfg.scoring);
     let score = breakdown.aggregate;
 
     Ok(ScenarioResult {
@@ -212,187 +240,320 @@ fn run_scenario(
         score,
         score_breakdown: breakdown.into(),
     })
+    })();
+
+    let _ = server.kill();
+    let _ = server.wait();
+
+    scenario_result
 }
 
-/// Attempt batch benchmarks via llama-server + HTTP. Gracefully skipped if server is unavailable.
-fn run_batch_scenarios(
-    model_path: &Path,
-    model: &ModelConfig,
-    workload: &WorkloadConfig,
-    device: &str,
-    cfg: &BenchConfig,
-) -> Vec<BatchMetrics> {
-    let server_exe = match assets::find_llama_server() {
-        Ok(e) => e,
-        Err(_) => {
-            println!("  batch: llama-server not found – skipping batch benchmarks");
-            return Vec::new();
-        }
-    };
-    let server_exe = server_exe.as_path();
-
-    let port = 18765u16;
-    let mut results = Vec::new();
-
-    for &batch_size in &cfg.batch_sizes {
-        match run_single_batch(
-            server_exe,
-            model_path,
-            model,
-            workload,
-            device,
-            cfg,
-            port,
-            batch_size,
-        ) {
-            Ok(bm) => {
-                println!(
-                    "  batch={} → {:.1} req/s, {:.1} tok/s",
-                    batch_size, bm.throughput_req_per_sec, bm.throughput_tokens_per_sec
-                );
-                results.push(bm);
-            }
-            Err(e) => {
-                println!("  batch={}: {}", batch_size, e);
-            }
-        }
-    }
-
-    results
-}
-
-fn run_single_batch(
+fn spawn_server(
     server_exe: &Path,
     model_path: &Path,
     model: &ModelConfig,
-    workload: &WorkloadConfig,
     device: &str,
     cfg: &BenchConfig,
     port: u16,
-    batch_size: u32,
-) -> anyhow::Result<BatchMetrics> {
-
-    // Build server command
+    parallel: u32,
+) -> anyhow::Result<std::process::Child> {
     let mut server_cmd = std::process::Command::new(server_exe);
+    let total_context = model.context_length.saturating_mul(parallel);
     server_cmd.arg("--model").arg(model_path);
     server_cmd.arg("--port").arg(port.to_string());
-    server_cmd.arg("--ctx-size").arg(model.context_length.to_string());
-    server_cmd.arg("--parallel").arg(batch_size.to_string());
+    // llama-server divides the total context across parallel slots. Keep the
+    // configured per-request context available for each slot.
+    server_cmd.arg("--ctx-size").arg(total_context.to_string());
+    server_cmd.arg("--parallel").arg(parallel.to_string());
     server_cmd.arg("--threads").arg(num_cpus().to_string());
+
     match device {
-        "gpu" => { server_cmd.arg("--n-gpu-layers").arg(cfg.gpu_layers.to_string()); }
-        "cpu" => { server_cmd.arg("--n-gpu-layers").arg("0"); }
+        "gpu" => {
+            server_cmd.arg("--n-gpu-layers").arg(cfg.gpu_layers.to_string());
+        }
+        "cpu" => {
+            // Hide CUDA devices at process start, and tell llama.cpp not to use
+            // any device backend. This makes CPU runs truly CPU-only.
+            server_cmd.env("CUDA_VISIBLE_DEVICES", "-1");
+            server_cmd.arg("--device").arg("none");
+            server_cmd.arg("--n-gpu-layers").arg("0");
+        }
+        "mixed" => {
+            server_cmd
+                .arg("--n-gpu-layers")
+                .arg(cfg.mixed_gpu_layers.to_string());
+        }
         _ => {}
     }
 
-    // Suppress server output
     server_cmd
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null());
 
-    let mut server = server_cmd.spawn()?;
+    Ok(server_cmd.spawn()?)
+}
 
-    // Wait for server to be ready
-    let ready = wait_for_server(port, std::time::Duration::from_secs(120));
-    if !ready {
-        let _ = server.kill();
-        anyhow::bail!("llama-server did not start within 120 s");
+fn run_server_completion(
+    client: &reqwest::blocking::Client,
+    url: &str,
+    workload: &WorkloadConfig,
+    seed: u64,
+    load_time_ms: f64,
+    timeout_secs: u64,
+    label: &str,
+) -> anyhow::Result<RawSample> {
+    let body = completion_body(workload, seed);
+    let start = Instant::now();
+    let resp = client
+        .post(url)
+        .json(&body)
+        .timeout(std::time::Duration::from_secs(timeout_secs))
+        .send()?;
+    let request_ms = start.elapsed().as_millis() as f64;
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().unwrap_or_default();
+        anyhow::bail!("server HTTP {}: {}", status, text);
     }
 
-    let prompt = llama::build_prompt(workload);
-    let url = format!("http://127.0.0.1:{}/completion", port);
-    let max_tokens = workload.max_tokens;
-    let body = serde_json::json!({
-        "prompt": prompt,
-        "n_predict": max_tokens,
-        "seed": 42
-    });
+    let json: serde_json::Value = resp.json()?;
+    let sample = sample_from_server_json(&json, workload.max_tokens, load_time_ms, request_ms);
+    println!(
+        "  {} load={:.0}ms  wall={:.0}ms  tok={}  tps={:.1}",
+        label,
+        sample.load_time_ms,
+        sample.wall_time_ms,
+        sample.gen_tokens,
+        sample.tokens_per_sec
+    );
+    Ok(sample)
+}
 
-    let client = reqwest::blocking::Client::new();
-    let wall_start = Instant::now();
-
-    // Send batch_size concurrent requests using threads
-    let handles: Vec<_> = (0..batch_size)
-        .map(|_| {
-            let client = client.clone();
-            let url = url.clone();
-            let body = body.clone();
-            std::thread::spawn(move || -> anyhow::Result<(f64, u64)> {
-                let t = Instant::now();
-                let resp = client
-                    .post(&url)
-                    .json(&body)
-                    .timeout(std::time::Duration::from_secs(600))
-                    .send()?;
-                let elapsed = t.elapsed().as_millis() as f64;
-                if !resp.status().is_success() {
-                    anyhow::bail!("server HTTP {}", resp.status());
-                }
-                let json: serde_json::Value = resp.json()?;
-                let tokens = json["tokens_predicted"]
-                    .as_u64()
-                    .unwrap_or(max_tokens as u64);
-                Ok((elapsed, tokens))
-            })
-        })
-        .collect();
-
-    let mut latencies = Vec::new();
-    let mut total_tokens = 0u64;
-    let mut successes = 0u32;
-
-    for h in handles {
-        match h.join() {
-            Ok(Ok((lat, tok))) => {
-                latencies.push(lat);
-                total_tokens += tok;
-                successes += 1;
-            }
-            _ => {}
-        }
-    }
-
-    let total_wall = wall_start.elapsed().as_millis() as f64;
-
-    let _ = server.kill();
-
-    latencies.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    let p50 = percentile(&latencies, 50.0);
-    let p95 = percentile(&latencies, 95.0);
-
-    Ok(BatchMetrics {
-        batch_size,
-        total_requests: batch_size,
-        successful_requests: successes,
-        total_wall_ms: total_wall,
-        throughput_req_per_sec: successes as f64 / (total_wall / 1000.0).max(0.001),
-        throughput_tokens_per_sec: total_tokens as f64 / (total_wall / 1000.0).max(0.001),
-        latency_p50_ms: p50,
-        latency_p95_ms: p95,
-        total_tokens_generated: total_tokens,
+fn completion_body(workload: &WorkloadConfig, seed: u64) -> serde_json::Value {
+    serde_json::json!({
+        "prompt": workload.prompt,
+        "n_predict": workload.max_tokens,
+        "seed": seed,
+        "cache_prompt": true,
     })
 }
 
-fn wait_for_server(port: u16, timeout: std::time::Duration) -> bool {
-    use std::net::TcpStream;
+fn sample_from_server_json(
+    json: &serde_json::Value,
+    max_tokens: u32,
+    load_time_ms: f64,
+    request_ms: f64,
+) -> RawSample {
+    let gen_tokens = server_token_count(json).unwrap_or(max_tokens as u64);
+    let prompt_tokens = json_u64(json, &["tokens_evaluated"])
+        .or_else(|| json_u64(json, &["timings", "prompt_n"]))
+        .unwrap_or(0);
+    let prompt_ms = json_f64(json, &["timings", "prompt_ms"])
+        .or_else(|| json_f64(json, &["prompt_ms"]))
+        .unwrap_or(0.0);
+    let gen_ms = json_f64(json, &["timings", "predicted_ms"])
+        .or_else(|| json_f64(json, &["predicted_ms"]))
+        .unwrap_or(request_ms.max(1.0));
+    let tps = json_f64(json, &["timings", "predicted_per_second"])
+        .or_else(|| json_f64(json, &["tokens_per_second"]))
+        .unwrap_or_else(|| gen_tokens as f64 / (gen_ms / 1000.0).max(0.001));
+
+    RawSample {
+        completion: server_completion_text(json),
+        wall_time_ms: load_time_ms + request_ms,
+        load_time_ms,
+        prompt_tokens,
+        prompt_eval_ms: prompt_ms,
+        gen_tokens,
+        gen_eval_ms: gen_ms,
+        tokens_per_sec: tps,
+        ttft_ms: load_time_ms + prompt_ms,
+        success: true,
+    }
+}
+
+fn server_completion_text(json: &serde_json::Value) -> Option<String> {
+    json.get("content")
+        .and_then(|v| v.as_str())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .or_else(|| {
+            json.get("text")
+                .and_then(|v| v.as_str())
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+        })
+        .or_else(|| {
+            json.get("generation")
+                .and_then(|v| v.as_str())
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+        })
+}
+
+fn server_token_count(json: &serde_json::Value) -> Option<u64> {
+    json_u64(json, &["tokens_predicted"])
+        .or_else(|| json_u64(json, &["timings", "predicted_n"]))
+        .or_else(|| json_u64(json, &["completion_tokens"]))
+}
+
+fn json_u64(json: &serde_json::Value, path: &[&str]) -> Option<u64> {
+    let mut value = json;
+    for key in path {
+        value = value.get(*key)?;
+    }
+    value.as_u64()
+}
+
+fn json_f64(json: &serde_json::Value, path: &[&str]) -> Option<f64> {
+    let mut value = json;
+    for key in path {
+        value = value.get(*key)?;
+    }
+    value.as_f64()
+}
+
+fn wait_for_server_ready(
+    client: &reqwest::blocking::Client,
+    base_url: &str,
+    timeout: std::time::Duration,
+) -> bool {
     let deadline = Instant::now() + timeout;
+    let health_url = format!("{}/health", base_url);
     while Instant::now() < deadline {
-        if TcpStream::connect(format!("127.0.0.1:{}", port)).is_ok() {
-            // Give server a moment to register routes after TCP is up
-            std::thread::sleep(std::time::Duration::from_millis(500));
-            return true;
+        if let Ok(resp) = client
+            .get(&health_url)
+            .timeout(std::time::Duration::from_secs(2))
+            .send()
+        {
+            if resp.status().is_success() {
+                return true;
+            }
         }
-        std::thread::sleep(std::time::Duration::from_millis(250));
+        std::thread::sleep(std::time::Duration::from_millis(500));
     }
     false
 }
 
-fn percentile(sorted: &[f64], p: f64) -> f64 {
-    if sorted.is_empty() {
-        return 0.0;
+/// Returns `Some(reason)` if there is not enough free RAM to safely run this
+/// model, or `None` if it looks safe to proceed.
+fn check_ram_available(model: &ModelConfig, device: &str) -> Option<String> {
+    use sysinfo::{System, SystemExt};
+    let mut sys = System::new_all();
+    sys.refresh_memory();
+    let avail_gb = sys.available_memory() as f64 / 1_073_741_824.0;
+
+    let params_b: f64 = model
+        .params
+        .as_deref()
+        .and_then(|p| p.trim_end_matches('B').parse().ok())
+        .unwrap_or(4.0);
+
+    // Weight size estimate + 50 % for KV-cache and runtime overhead.
+    let weight_gb = params_b * 0.6;
+    let required_gb = match device {
+        "gpu" => weight_gb * 0.15, // most weight is in VRAM; only KV-cache in RAM
+        _ => weight_gb * 1.5,
+    };
+
+    // Keep a 1.5 GB safety margin for the OS and other processes to breathe.
+    let safe_threshold = required_gb + 1.5;
+
+    if avail_gb < safe_threshold {
+        Some(format!(
+            "SKIP: only {:.1} GB RAM available, need ~{:.1} GB for {} ({}) — \
+             close other apps and retry.",
+            avail_gb, safe_threshold, model.name, device
+        ))
+    } else {
+        None
     }
-    let idx = ((p / 100.0) * (sorted.len() - 1) as f64).round() as usize;
-    sorted[idx.min(sorted.len() - 1)]
+}
+
+/// Build a zeroed-out scenario result that records a skipped run.
+fn skipped_scenario(
+    model: &ModelConfig,
+    workload: &WorkloadConfig,
+    device: &str,
+) -> ScenarioResult {
+    let empty = AggregatedMetrics::default();
+    ScenarioResult {
+        model_name: model.name.clone(),
+        workload_id: workload.id.clone(),
+        workload_label: workload.label.clone(),
+        device: device.to_string(),
+        cold_samples: vec![],
+        warm_samples: vec![],
+        cold_metrics: empty.clone(),
+        warm_metrics: empty,
+        batch_results: vec![],
+        score: 0.0,
+        score_breakdown: ScoreBreakdownSer::default(),
+    }
+}
+
+fn warn_if_low_memory(cfg: &BenchConfig) {
+    use sysinfo::{System, SystemExt};
+    let mut sys = System::new_all();
+    sys.refresh_memory();
+    let avail_gb = sys.available_memory() as f64 / 1_073_741_824.0;
+
+    let largest_gb: f64 = cfg
+        .models
+        .iter()
+        .filter_map(|m| m.params.as_deref())
+        .filter_map(|p| p.trim_end_matches('B').parse::<f64>().ok())
+        .map(|b| b * 0.6)
+        .fold(0.0_f64, f64::max);
+
+    if avail_gb < 2.0 {
+        println!(
+            "{} Only {:.1} GB RAM available — close other applications before benchmarking.",
+            "WARNING:".yellow().bold(),
+            avail_gb
+        );
+    } else if largest_gb > 0.0 && avail_gb < largest_gb * 1.5 + 1.5 {
+        println!(
+            "{} {:.1} GB RAM available; the largest model needs ~{:.1} GB. \
+             Scenarios that don't fit will be skipped automatically.",
+            "Note:".yellow().bold(),
+            avail_gb,
+            largest_gb * 1.5 + 1.5,
+        );
+    }
+}
+
+/// Estimate a generous per-inference timeout.
+///
+/// The CUDA-enabled llama-cli binary initialises the GPU runtime at startup
+/// even for CPU-only runs (--n-gpu-layers 0).  This can take 30–60 s on a
+/// cold system.  We add a fixed 90 s base to cover that overhead, then scale
+/// by model size and device.  The cap is 20 min so a truly stuck process
+/// doesn't block the entire run indefinitely.
+fn estimate_timeout_secs(model: &crate::config::ModelConfig, device: &str) -> u64 {
+    let params_b: f64 = model
+        .params
+        .as_deref()
+        .and_then(|p| p.trim_end_matches('B').parse().ok())
+        .unwrap_or(8.0);
+
+    // Per-param scaling: how many seconds per billion params.
+    let secs_per_b = match device {
+        "gpu"   => 10.0,   // GPU is fast
+        "mixed" => 30.0,
+        _       => 60.0,   // CPU: ~60 s per billion params on a mid-range desktop
+    };
+
+    // Fixed overhead for process startup + model load.
+    // CPU runs use --device none so the CUDA runtime is never initialised;
+    // GPU/mixed runs still need time for the driver + CUDA JIT warm-up.
+    let startup_overhead = match device {
+        "cpu" => 30.0_f64,
+        _     => 90.0_f64,
+    };
+
+    let total = startup_overhead + params_b * secs_per_b * 4.0;
+    (total as u64).clamp(120, 1200) // 2 min minimum, 20 min cap
 }
 
 fn num_cpus() -> u32 {
@@ -400,3 +561,4 @@ fn num_cpus() -> u32 {
         .map(|n| n.get() as u32)
         .unwrap_or(4)
 }
+

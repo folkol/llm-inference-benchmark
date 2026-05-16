@@ -1,1 +1,5 @@
 /target
+
+# Local benchmark outputs / scratch logs
+reports/
+e2e-out.txt

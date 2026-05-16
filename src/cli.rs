@@ -4,10 +4,14 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     assets,
+    compare,
     config,
+    doctor,
     hardware,
+    interrupt,
     report,
     runner,
+    setup,
 };
 
 #[derive(Parser)]
@@ -49,13 +53,34 @@ pub enum Commands {
         #[arg(long, default_value = "")]
         models: String,
         /// Number of warm repetitions per scenario
-        #[arg(long, default_value_t = 3)]
+        #[arg(long, default_value_t = 1)]
         runs: u32,
     },
     /// Open the HTML report for the most-recent run
     Report {
         #[arg(default_value = "reports/latest")]
         dir: PathBuf,
+    },
+    /// Download and install the right llama.cpp binaries for this machine
+    Setup {
+        /// Re-download even if already installed
+        #[arg(long, default_value_t = false)]
+        force: bool,
+    },
+    /// Check the environment and report what needs to be fixed before benchmarking
+    Doctor {
+        /// Path to bench config (used to check model cache status)
+        #[arg(short, long, default_value = "bench.toml")]
+        config: PathBuf,
+    },
+    /// Combine results.json files from multiple machines into one comparison report
+    Compare {
+        /// Two or more results.json files (one per machine)
+        #[arg(required = true, num_args = 2..)]
+        results: Vec<PathBuf>,
+        /// Output HTML file
+        #[arg(short, long, default_value = "comparison.html")]
+        out: PathBuf,
     },
 }
 
@@ -146,6 +171,8 @@ pub fn cmd_bench_run(
 
     cfg.warm_runs = warm_runs;
 
+    interrupt::install();
+
     let hw = hardware::detect();
     println!("{}", hw.summary());
 
@@ -160,6 +187,26 @@ pub fn cmd_bench_run(
         "Done.".green().bold(),
         html.display()
     );
+    Ok(())
+}
+
+pub fn cmd_setup(force: bool) -> anyhow::Result<()> {
+    setup::run(force)
+}
+
+pub fn cmd_doctor(config_path: &Path) -> anyhow::Result<()> {
+    let cfg = config::load(config_path).ok();
+    let result = doctor::run(cfg.as_ref());
+    if result.failed {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+pub fn cmd_compare(results: &[PathBuf], out: &Path) -> anyhow::Result<()> {
+    compare::generate(results, out)?;
+    println!("Comparison report written to {}", out.display());
+    open_browser(out)?;
     Ok(())
 }
 

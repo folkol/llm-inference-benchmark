@@ -15,6 +15,9 @@ fn main() {
             llmb::cli::cmd_bench_run(&config, &out, &devices, &models, runs)
         }
         Commands::Report { dir } => llmb::cli::cmd_report_open(&dir),
+        Commands::Setup { force } => llmb::cli::cmd_setup(force),
+        Commands::Doctor { config } => llmb::cli::cmd_doctor(&config),
+        Commands::Compare { results, out } => llmb::cli::cmd_compare(&results, &out),
     };
 
     if let Err(e) = result {

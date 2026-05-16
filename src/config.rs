@@ -23,9 +23,16 @@ pub struct BenchConfig {
     #[serde(default)]
     pub cpu_threads: u32,
 
-    /// GPU layers to offload (-1 = all)
+    /// GPU layers to offload when device = "gpu" (-1 = all)
     #[serde(default = "default_gpu_layers")]
     pub gpu_layers: i32,
+
+    /// GPU layers to offload when device = "mixed" (explicit partial offload).
+    /// Set this to a number less than the model's total layer count.
+    /// Common values: 16 (light), 20 (moderate), 28 (heavy for 7B/8B).
+    /// Run `llama-cli --model <file> --list-layers` to see total layers.
+    #[serde(default = "default_mixed_gpu_layers")]
+    pub mixed_gpu_layers: u32,
 
     /// Models to benchmark
     pub models: Vec<ModelConfig>,
@@ -99,16 +106,19 @@ fn default_devices() -> Vec<String> {
     vec!["cpu".to_string()]
 }
 fn default_warm_runs() -> u32 {
-    3
+    1
 }
 fn default_batch_sizes() -> Vec<u32> {
-    vec![1, 4, 8]
+    Vec::new()
 }
 fn default_max_tokens() -> u32 {
     256
 }
 fn default_gpu_layers() -> i32 {
     -1
+}
+fn default_mixed_gpu_layers() -> u32 {
+    20
 }
 fn default_context() -> u32 {
     2048
@@ -117,13 +127,13 @@ fn default_weight_tps() -> f64 {
     0.4
 }
 fn default_weight_load() -> f64 {
-    0.2
+    0.3
 }
 fn default_weight_ttft() -> f64 {
-    0.2
+    0.3
 }
 fn default_weight_batch() -> f64 {
-    0.2
+    0.0
 }
 
 pub fn load(path: &Path) -> anyhow::Result<BenchConfig> {

@@ -1,0 +1,16 @@
+# Statically link the C/C++ runtime and libgcc so the produced .exe has
+# no external DLL dependencies (libgcc_s_seh-1.dll, libwinpthread-1.dll, …).
+# This makes it safe to distribute a single llmb.exe to machines that do
+# not have MinGW or the Rust toolchain installed.
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+# MSVC builds are already statically linked against the CRT by default.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+# Linux: link libgcc and libstdc++ statically so the binary runs on older distros.
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-arg=-static-libgcc", "-C", "link-arg=-static-libstdc++"]
+
+# macOS: no special flags needed – the system libSystem is stable and ABI-compatible.

@@ -1,6 +1,10 @@
 pub mod assets;
 pub mod cli;
+pub mod compare;
 pub mod config;
+pub mod doctor;
+pub mod interrupt;
+pub mod setup;
 pub mod hardware;
 pub mod llama;
 pub mod metrics;
