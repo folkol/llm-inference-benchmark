@@ -1,0 +1,827 @@
+{
+  "schema_version": 1,
+  "run_id": "20260516T224734",
+  "timestamp": "2026-05-16T22:47:34.592159500+00:00",
+  "hardware": {
+    "os": "windows",
+    "os_version": "11 (26200)",
+    "cpu_brand": "Intel(R) Core(TM) Ultra 9 285K",
+    "cpu_cores_physical": 24,
+    "cpu_cores_logical": 24,
+    "ram_total_gb": 31.37960433959961,
+    "gpu_info": [
+      {
+        "name": "NVIDIA GeForce RTX 4080 SUPER",
+        "vendor": "NVIDIA",
+        "vram_mb": 16376
+      }
+    ],
+    "llama_cpp_version": null
+  },
+  "scenarios": [
+    {
+      "model_name": "Qwen3-0.6B-Q4_K_M",
+      "workload_id": "summarize",
+      "workload_label": "Summarization",
+      "device": "cpu",
+      "cold_samples": [
+        {
+          "completion": "?\n\nThe field of artificial intelligence has experienced a dramatic",
+          "wall_time_ms": 1303.0,
+          "load_time_ms": 1019.0,
+          "prompt_tokens": 393,
+          "prompt_eval_ms": 217.193,
+          "gen_tokens": 10,
+          "gen_eval_ms": 63.855,
+          "tokens_per_sec": 156.60480776759846,
+          "ttft_ms": 1236.193,
+          "success": true
+        }
+      ],
+      "warm_samples": [
+        {
+          "completion": "_The rapid development of artificial intelligence over the past",
+          "wall_time_ms": 83.0,
+          "load_time_ms": 0.0,
+          "prompt_tokens": 393,
+          "prompt_eval_ms": 7.727,
+          "gen_tokens": 10,
+          "gen_eval_ms": 74.057,
+          "tokens_per_sec": 135.0311246742374,
+          "ttft_ms": 7.727,
+          "success": true
+        }
+      ],
+      "cold_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 156.60480776759846,
+        "tokens_per_sec_p50": 156.60480776759846,
+        "tokens_per_sec_p95": 156.60480776759846,
+        "load_time_ms_mean": 1019.0,
+        "ttft_ms_mean": 1236.193,
+        "ttft_ms_p95": 1236.193,
+        "wall_time_ms_mean": 1303.0,
+        "gen_tokens_mean": 10.0,
+        "success_rate": 1.0
+      },
+      "warm_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 135.0311246742374,
+        "tokens_per_sec_p50": 135.0311246742374,
+        "tokens_per_sec_p95": 135.0311246742374,
+        "load_time_ms_mean": 0.0,
+        "ttft_ms_mean": 7.727,
+        "ttft_ms_p95": 7.727,
+        "wall_time_ms_mean": 83.0,
+        "gen_tokens_mean": 10.0,
+        "success_rate": 1.0
+      },
+      "batch_results": [],
+      "score": 100.0,
+      "score_breakdown": {
+        "tokens_per_sec_score": 100.0,
+        "load_time_score": 100.0,
+        "ttft_score": 100.0,
+        "batch_throughput_score": 0.0,
+        "aggregate": 100.0
+      }
+    },
+    {
+      "model_name": "Qwen3-0.6B-Q4_K_M",
+      "workload_id": "code",
+      "workload_label": "Code Generation",
+      "device": "cpu",
+      "cold_samples": [
+        {
+          "completion": "Include the final line of the code as a comment.\n\nYour answer should have exactly 100% Python syntax and no extra whitespace or comments. Only the code, not the explanation, should be included.\n\n**Note:** The first two lines of the code block must be the function definition and the comment, and the remaining lines must be the code.\n\n**Final line of the code must be a comment.**\n**Output:** no trailing newline.\n\n**Test Cases:**\n```\nTest 1\nTest 2\nTest 3\n```\n\n```\nInput 1:\n[2, 4, 6, 8, 10]\nInput 2:\n[1, 3, 5, 7, 9]\nOutput 1:\n[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\nTest 2\n[1, 3, 5, 7, 9]\nInput 3\n[1, 2, 3, 4, 5, 6, 7, 8, 9]\nOutput 2:\n[1, 2, 3, 4, 5, 6, 7, 8, 9]\n```\n\nSo, after the function, the output should be:\n```\n[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n```\n\nNow, with the final line of the code as a comment.\n\n```\n```\n```\n```\n```\n\nSo, after the function, the output should be:\n```\n[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n```\n```\n```\n```\n```\n\nThus, the code should be:\n\n```python\n# function to merge two sorted lists into one\ndef merge_sorted_arrays(A, B):\n    # some code here\n    # comments\n    # return a list\n    # ... etc.\n```\n```\n\n```python\n# function to merge two sorted lists into one\ndef merge_sorted_arrays(A, B):\n    # initializations\n    result = []\n    # code that adds elements to result\n    # comments\n    # return the result\n    # ... etc.\n```\n```\n```\n```\n```\n\nWait,",
+          "wall_time_ms": 4778.0,
+          "load_time_ms": 1019.0,
+          "prompt_tokens": 116,
+          "prompt_eval_ms": 75.464,
+          "gen_tokens": 512,
+          "gen_eval_ms": 3681.737,
+          "tokens_per_sec": 139.06479468794214,
+          "ttft_ms": 1094.464,
+          "success": true
+        }
+      ],
+      "warm_samples": [
+        {
+          "completion": "Use the `list` module and `sys` module for error checking.\n\n## Please only write the code in the box**\n**Please don't use `import`**\n**Please only use `sys`**\n**Please only use `list`**\n**Please don't use `print`**\n**Please don't use `for` or `while` loops**\n**Please use `if` statements**\n\n---\n\nHere is the skeleton code:\n\n```python\ndef merge_sorted_arrays(a, b):\n    pass\n```\n\n---\n\nThe function must have the following properties:\n- Accept two lists of comparable elements\n- Return a new sorted list containing all elements from both inputs\n- Run in O(n + m) time\n- Include a brief docstring\n```\n\n**Please only write the code in the box**\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n```\n``",
+          "wall_time_ms": 3705.0,
+          "load_time_ms": 0.0,
+          "prompt_tokens": 116,
+          "prompt_eval_ms": 7.225,
+          "gen_tokens": 512,
+          "gen_eval_ms": 3680.006,
+          "tokens_per_sec": 139.13020793987835,
+          "ttft_ms": 7.225,
+          "success": true
+        }
+      ],
+      "cold_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 139.06479468794214,
+        "tokens_per_sec_p50": 139.06479468794214,
+        "tokens_per_sec_p95": 139.06479468794214,
+        "load_time_ms_mean": 1019.0,
+        "ttft_ms_mean": 1094.464,
+        "ttft_ms_p95": 1094.464,
+        "wall_time_ms_mean": 4778.0,
+        "gen_tokens_mean": 512.0,
+        "success_rate": 1.0
+      },
+      "warm_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 139.13020793987835,
+        "tokens_per_sec_p50": 139.13020793987835,
+        "tokens_per_sec_p95": 139.13020793987835,
+        "load_time_ms_mean": 0.0,
+        "ttft_ms_mean": 7.225,
+        "ttft_ms_p95": 7.225,
+        "wall_time_ms_mean": 3705.0,
+        "gen_tokens_mean": 512.0,
+        "success_rate": 1.0
+      },
+      "batch_results": [],
+      "score": 100.0,
+      "score_breakdown": {
+        "tokens_per_sec_score": 100.0,
+        "load_time_score": 100.0,
+        "ttft_score": 100.0,
+        "batch_throughput_score": 0.0,
+        "aggregate": 100.0
+      }
+    },
+    {
+      "model_name": "Qwen3-0.6B-Q4_K_M",
+      "workload_id": "assistant",
+      "workload_label": "Generic Assistant",
+      "device": "cpu",
+      "cold_samples": [
+        {
+          "completion": "Let me know if there's anything else I need to know.\nAnswer:\n\nTo ensure a successful 7-day solo mountain hiking trip, here's a structured plan:\n\n1. **Organize the Trip**: Confirm the start and end times, route selection, and arrival/departure points. This sets the itinerary in motion.\n\n2. **Purchase Essential Gear**: Ensure you have a tent, food, water, and a first aid kit. These essentials are crucial for survival and safety.\n\n3. **Budget Planning**: Allocate funds for the trip, including the budget mentioned, transportation, and gear. This helps in managing costs effectively.\n\n4. **Research the Route**: Plan a route that offers both scenic beauty and accessibility, considering weather conditions.\n\n5. **Pack Smartly**: Prioritize the gear that will be most used, such as a durable backpack and a durable hiking boots.\n\nFor the specific gear overlooked, consider a durable backpack and hiking boots. These items are often overlooked due to their importance in the hiking experience. Let me know if there's anything else I need to know. \n\n**Answer:**\n\nTo plan a successful 7-day solo hiking trip through a mountainous region, here are the five most important things to organize or purchase:\n\n1. **Organize the",
+          "wall_time_ms": 2887.0,
+          "load_time_ms": 1025.0,
+          "prompt_tokens": 94,
+          "prompt_eval_ms": 67.507,
+          "gen_tokens": 256,
+          "gen_eval_ms": 1792.128,
+          "tokens_per_sec": 142.8469395043211,
+          "ttft_ms": 1092.507,
+          "success": true
+        }
+      ],
+      "warm_samples": [
+        {
+          "completion": "Let me know if you can help with anything else.\nOkay, so I need to plan a 7-day solo hike through a mountain area. The user has intermediate hiking experience, a tent, and a budget of around $500. They want me to list five key things to organize or purchase before departure, explain the reasons, and suggest a gear that's often overlooked. The response should be practical and focused.\n\nFirst, I should consider what's necessary for a solo trip. A tent is essential for shelter, so I need to confirm if the user has a tent. They mentioned they have a tent, so maybe that's covered. But maybe they don't have a tent, so maybe I need to suggest purchasing one? Wait, the user said they have a tent, so perhaps they already have it. But the question is about what to organize or purchase. So maybe check if they have a tent or not. If they do, then maybe not necessary. But since the user says they have a tent, perhaps they already have one. Therefore, the list should be based on what's needed.\n\nNext, the five most important things. Since the trip is 7 days, the first few days would be the most time-consuming. So things like food,",
+          "wall_time_ms": 1844.0,
+          "load_time_ms": 0.0,
+          "prompt_tokens": 94,
+          "prompt_eval_ms": 6.875,
+          "gen_tokens": 256,
+          "gen_eval_ms": 1827.126,
+          "tokens_per_sec": 140.11075317192137,
+          "ttft_ms": 6.875,
+          "success": true
+        }
+      ],
+      "cold_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 142.8469395043211,
+        "tokens_per_sec_p50": 142.8469395043211,
+        "tokens_per_sec_p95": 142.8469395043211,
+        "load_time_ms_mean": 1025.0,
+        "ttft_ms_mean": 1092.507,
+        "ttft_ms_p95": 1092.507,
+        "wall_time_ms_mean": 2887.0,
+        "gen_tokens_mean": 256.0,
+        "success_rate": 1.0
+      },
+      "warm_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 140.11075317192137,
+        "tokens_per_sec_p50": 140.11075317192137,
+        "tokens_per_sec_p95": 140.11075317192137,
+        "load_time_ms_mean": 0.0,
+        "ttft_ms_mean": 6.875,
+        "ttft_ms_p95": 6.875,
+        "wall_time_ms_mean": 1844.0,
+        "gen_tokens_mean": 256.0,
+        "success_rate": 1.0
+      },
+      "batch_results": [],
+      "score": 100.0,
+      "score_breakdown": {
+        "tokens_per_sec_score": 100.0,
+        "load_time_score": 100.0,
+        "ttft_score": 100.0,
+        "batch_throughput_score": 0.0,
+        "aggregate": 100.0
+      }
+    },
+    {
+      "model_name": "Qwen3-0.6B-Q4_K_M",
+      "workload_id": "summarize",
+      "workload_label": "Summarization",
+      "device": "gpu",
+      "cold_samples": [
+        {
+          "completion": "The field of artificial intelligence has undergone a dramatic transformation",
+          "wall_time_ms": 1071.0,
+          "load_time_ms": 1028.0,
+          "prompt_tokens": 393,
+          "prompt_eval_ms": 18.788,
+          "gen_tokens": 10,
+          "gen_eval_ms": 23.247,
+          "tokens_per_sec": 430.1630317890481,
+          "ttft_ms": 1046.788,
+          "success": true
+        }
+      ],
+      "warm_samples": [
+        {
+          "completion": "_The transformation of artificial intelligence over the past decade",
+          "wall_time_ms": 21.0,
+          "load_time_ms": 0.0,
+          "prompt_tokens": 393,
+          "prompt_eval_ms": 2.876,
+          "gen_tokens": 10,
+          "gen_eval_ms": 17.527,
+          "tokens_per_sec": 570.5482969133336,
+          "ttft_ms": 2.876,
+          "success": true
+        }
+      ],
+      "cold_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 430.1630317890481,
+        "tokens_per_sec_p50": 430.1630317890481,
+        "tokens_per_sec_p95": 430.1630317890481,
+        "load_time_ms_mean": 1028.0,
+        "ttft_ms_mean": 1046.788,
+        "ttft_ms_p95": 1046.788,
+        "wall_time_ms_mean": 1071.0,
+        "gen_tokens_mean": 10.0,
+        "success_rate": 1.0
+      },
+      "warm_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 570.5482969133336,
+        "tokens_per_sec_p50": 570.5482969133336,
+        "tokens_per_sec_p95": 570.5482969133336,
+        "load_time_ms_mean": 0.0,
+        "ttft_ms_mean": 2.876,
+        "ttft_ms_p95": 2.876,
+        "wall_time_ms_mean": 21.0,
+        "gen_tokens_mean": 10.0,
+        "success_rate": 1.0
+      },
+      "batch_results": [],
+      "score": 100.0,
+      "score_breakdown": {
+        "tokens_per_sec_score": 100.0,
+        "load_time_score": 100.0,
+        "ttft_score": 100.0,
+        "batch_throughput_score": 0.0,
+        "aggregate": 100.0
+      }
+    },
+    {
+      "model_name": "Qwen3-0.6B-Q4_K_M",
+      "workload_id": "code",
+      "workload_label": "Code Generation",
+      "device": "gpu",
+      "cold_samples": [
+        {
+          "completion": "Use the function as a class, and include all the required fields.\n\nBut the function is supposed to be a class.\n\nSo, the function can be written as:\n\nclass merge_sorted_arrays:\n    def __init__(self, list1, list2):\n        self.list1 = list1\n        self.list2 = list2\n        self.result = None\n        self.sorted = None\n\n    def merge(self):\n        # your code here\n        return self.result\n\nBut the function can be written as a class or as a function.\n\nSo, the function can be written as a function, not a class, or as a class.\n\nThe code should be written as a class or a function.\n\nSo, the code can be written as:\n\nclass merge_sorted_arrays:\n    def __init__(self, list1, list2):\n        self.list1 = list1\n        self.list2 = list2\n        self.result = None\n        self.sorted = None\n\n    def merge(self):\n        # your code here\n        return self.result\n\nThen, after that, add three assert statements.\n\nBut the code must be written in the Python code block, not as a separate file.\n\nSo, the code should be written as:\n\nclass merge_sorted_arrays:\n    def __init__(self, list1, list2):\n        self.list1 = list1\n        self.list2 = list2\n        self.result = None\n        self.sorted = None\n\n    def merge(self):\n        # your code here\n        return self.result\n\n# assertions\nassert merge_sorted_arrays([1,2,3], [4,5,6]).merge() == [1,2,3,4,5,6]\nassert merge_sorted_arrays([1,3,5], [2,4,6]).merge() == [1,2,3,4,5,6]\nassert merge_sorted_arrays([1,2,5,8], [3,4,6,7]).merge() == [1,2,3,4,5,6,7,8]\n\nSo, the function is a class. But the code must be written as a single Python code block, no extra explanation. So, the code must be written as a Python code block, not as separate lines.\n\nSo, the code for the function is written as:\n\nclass merge_sorted_arrays:\n    def __init__(self, list1, list2):\n        self.list1 = list1\n        self.list2 = list2",
+          "wall_time_ms": 2020.0,
+          "load_time_ms": 1028.0,
+          "prompt_tokens": 116,
+          "prompt_eval_ms": 18.292,
+          "gen_tokens": 512,
+          "gen_eval_ms": 972.869,
+          "tokens_per_sec": 526.2784609233103,
+          "ttft_ms": 1046.292,
+          "success": true
+        }
+      ],
+      "warm_samples": [
+        {
+          "completion": "Include the output for each test case.\n\nThe function is to be used with the `assert` statements.\n\nSo, for example, given the inputs `[[2, 5], [1, 3, 4]]`, the output should be `[1, 2, 3, 4, 5]` and the function must return that.\n\nNow, in the code, add the two lines where you use the function:\n- `print(merge_sorted_arrays([[2, 5], [1, 3, 4]]))`\n- `print(merge_sorted_arrays([[1, 3], [4, 6], [2, 7, 8]]))`\n\nEach test case must have two lists as the input to the function.\n\nSo, for the first example, the output should be `[1, 2, 3, 4, 5]` and the second output should be `[1, 2, 4, 6, 7, 8]`.\n\nNow, in the code, add the two lines:\n\n```python\nprint(merge_sorted_arrays([[2, 5], [1, 3, 4]]))\nprint(merge_sorted_arrays([[1, 3], [4, 6], [2, 7, 8]]))\n```\n```\n\nNow, in the code, add the two lines:\n\n```python\nprint(merge_sorted_arrays([[2, 5], [1, 3, 4]]))\nprint(merge_sorted_arrays([[1, 3], [4, 6], [2, 7, 8]])))\n```\n\n```\n\nSo, for the first example, the output is expected to be:\n\n```\n1\n2\n3\n4\n5\n```\n\nand for the second test case, the output is:\n\n```\n1\n2\n4\n6\n7\n8\n```\n\nNow, in the code, add the two lines:\n\n```python\nprint(merge_sorted_arrays([[2, 5], [1, 3, 4]]))\nprint(merge_sorted_arrays([[1, 3], [4, 6], [2, 7, 8]])))\n```\n\n```python\n```\n\nNow, in the code, add the two lines:\n\n```python\nprint(merge_sorted_arrays([[2, 5], [1, 3, 4]]))\nprint(merge_sorted_arrays([[1, 3], [",
+          "wall_time_ms": 990.0,
+          "load_time_ms": 0.0,
+          "prompt_tokens": 116,
+          "prompt_eval_ms": 5.032,
+          "gen_tokens": 512,
+          "gen_eval_ms": 965.034,
+          "tokens_per_sec": 530.5512551889364,
+          "ttft_ms": 5.032,
+          "success": true
+        }
+      ],
+      "cold_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 526.2784609233103,
+        "tokens_per_sec_p50": 526.2784609233103,
+        "tokens_per_sec_p95": 526.2784609233103,
+        "load_time_ms_mean": 1028.0,
+        "ttft_ms_mean": 1046.292,
+        "ttft_ms_p95": 1046.292,
+        "wall_time_ms_mean": 2020.0,
+        "gen_tokens_mean": 512.0,
+        "success_rate": 1.0
+      },
+      "warm_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 530.5512551889364,
+        "tokens_per_sec_p50": 530.5512551889364,
+        "tokens_per_sec_p95": 530.5512551889364,
+        "load_time_ms_mean": 0.0,
+        "ttft_ms_mean": 5.032,
+        "ttft_ms_p95": 5.032,
+        "wall_time_ms_mean": 990.0,
+        "gen_tokens_mean": 512.0,
+        "success_rate": 1.0
+      },
+      "batch_results": [],
+      "score": 100.0,
+      "score_breakdown": {
+        "tokens_per_sec_score": 100.0,
+        "load_time_score": 100.0,
+        "ttft_score": 100.0,
+        "batch_throughput_score": 0.0,
+        "aggregate": 100.0
+      }
+    },
+    {
+      "model_name": "Qwen3-0.6B-Q4_K_M",
+      "workload_id": "assistant",
+      "workload_label": "Generic Assistant",
+      "device": "gpu",
+      "cold_samples": [
+        {
+          "completion": "Make sure to list all the necessary items and the reasons for each.\nAlright, let me figure out how to approach this. The user wants a 7-day solo hiking plan through a mountainous region. They already have intermediate experience, a tent, and a budget of around $500. The trip starts and ends at the same trailhead. They need five things to organize or purchase before departure, each with a brief explanation, and one overlooked gear. \n\nFirst, I should start by listing the key items that are essential for any solo trip. The tent is a must, so that's covered. The budget is around $500, which includes transportation. So the budget breakdown would be tent (probably around $500), but maybe transportation is more. Wait, the user says the budget is $500 beyond transportation. So maybe the tent is $200, and transportation is $300, totaling $500. That makes sense.\n\nNext, the user needs to organize or purchase items. Let me think. For a 7-day trip, what's essential? The tent is there. Then maybe food and water. Since they are intermediate, they might not have enough gear, so having food and water is important",
+          "wall_time_ms": 1515.0,
+          "load_time_ms": 1019.0,
+          "prompt_tokens": 94,
+          "prompt_eval_ms": 17.345,
+          "gen_tokens": 256,
+          "gen_eval_ms": 478.284,
+          "tokens_per_sec": 535.2468407891546,
+          "ttft_ms": 1036.345,
+          "success": true
+        }
+      ],
+      "warm_samples": [
+        {
+          "completion": "Make sure to list all the necessary items and the reasons for each.\nAlright, let me start by breaking down the problem. The user wants a 7-day solo hike through a mountainous region, has intermediate hiking experience, a tent, and a budget of around $500 beyond transport. They need five key things to organize or purchase before departure, reasons for each, and a specific overlooked gear piece.\n\nFirst, I need to list the essential items. Since the user is intermediate, they might not have a backpack or a first aid kit. So, a backpack with a backpacker’s backpack is a good idea. That's a common mistake, but the user might not know about it. \n\nNext, a tent. The user mentioned a tent, so they need to confirm if they have one. If they don't, they need to buy a tent. A tent is crucial for shelter and protection, so that's a must.\n\nThen, a first aid kit. Intermediate hikers need to handle injuries, so including a first aid kit is important. \n\nA flashlight is also essential for navigation, especially in low-light conditions. \n\nLastly, a pack for the backpacker's backpack, which is a common mistake. \n\nNow, the reasons. For the backpack",
+          "wall_time_ms": 497.0,
+          "load_time_ms": 0.0,
+          "prompt_tokens": 94,
+          "prompt_eval_ms": 5.266,
+          "gen_tokens": 256,
+          "gen_eval_ms": 479.454,
+          "tokens_per_sec": 533.940690869197,
+          "ttft_ms": 5.266,
+          "success": true
+        }
+      ],
+      "cold_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 535.2468407891546,
+        "tokens_per_sec_p50": 535.2468407891546,
+        "tokens_per_sec_p95": 535.2468407891546,
+        "load_time_ms_mean": 1019.0,
+        "ttft_ms_mean": 1036.345,
+        "ttft_ms_p95": 1036.345,
+        "wall_time_ms_mean": 1515.0,
+        "gen_tokens_mean": 256.0,
+        "success_rate": 1.0
+      },
+      "warm_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 533.940690869197,
+        "tokens_per_sec_p50": 533.940690869197,
+        "tokens_per_sec_p95": 533.940690869197,
+        "load_time_ms_mean": 0.0,
+        "ttft_ms_mean": 5.266,
+        "ttft_ms_p95": 5.266,
+        "wall_time_ms_mean": 497.0,
+        "gen_tokens_mean": 256.0,
+        "success_rate": 1.0
+      },
+      "batch_results": [],
+      "score": 100.0,
+      "score_breakdown": {
+        "tokens_per_sec_score": 100.0,
+        "load_time_score": 100.0,
+        "ttft_score": 100.0,
+        "batch_throughput_score": 0.0,
+        "aggregate": 100.0
+      }
+    },
+    {
+      "model_name": "Qwen3-4B-Q4_K_M",
+      "workload_id": "summarize",
+      "workload_label": "Summarization",
+      "device": "cpu",
+      "cold_samples": [
+        {
+          "completion": "The past decade has seen a transformative shift in artificial",
+          "wall_time_ms": 3633.0,
+          "load_time_ms": 2013.0,
+          "prompt_tokens": 393,
+          "prompt_eval_ms": 1291.777,
+          "gen_tokens": 10,
+          "gen_eval_ms": 326.318,
+          "tokens_per_sec": 30.644953695474968,
+          "ttft_ms": 3304.777,
+          "success": true
+        }
+      ],
+      "warm_samples": [
+        {
+          "completion": "The field of artificial intelligence has undergone a remarkable",
+          "wall_time_ms": 352.0,
+          "load_time_ms": 0.0,
+          "prompt_tokens": 393,
+          "prompt_eval_ms": 34.515,
+          "gen_tokens": 10,
+          "gen_eval_ms": 316.541,
+          "tokens_per_sec": 31.59148419951918,
+          "ttft_ms": 34.515,
+          "success": true
+        }
+      ],
+      "cold_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 30.644953695474968,
+        "tokens_per_sec_p50": 30.644953695474968,
+        "tokens_per_sec_p95": 30.644953695474968,
+        "load_time_ms_mean": 2013.0,
+        "ttft_ms_mean": 3304.777,
+        "ttft_ms_p95": 3304.777,
+        "wall_time_ms_mean": 3633.0,
+        "gen_tokens_mean": 10.0,
+        "success_rate": 1.0
+      },
+      "warm_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 31.59148419951918,
+        "tokens_per_sec_p50": 31.59148419951918,
+        "tokens_per_sec_p95": 31.59148419951918,
+        "load_time_ms_mean": 0.0,
+        "ttft_ms_mean": 34.515,
+        "ttft_ms_p95": 34.515,
+        "wall_time_ms_mean": 352.0,
+        "gen_tokens_mean": 10.0,
+        "success_rate": 1.0
+      },
+      "batch_results": [],
+      "score": 100.0,
+      "score_breakdown": {
+        "tokens_per_sec_score": 100.0,
+        "load_time_score": 100.0,
+        "ttft_score": 100.0,
+        "batch_throughput_score": 0.0,
+        "aggregate": 100.0
+      }
+    },
+    {
+      "model_name": "Qwen3-4B-Q4_K_M",
+      "workload_id": "code",
+      "workload_label": "Code Generation",
+      "device": "cpu",
+      "cold_samples": [
+        {
+          "completion": "The function must not use the built-in `sorted()` function or `list.sort()`. So you can’t do something like `return sorted(a + b)`.\n\nThe function must not use the built-in `sorted()` function or `list.sort()`. So you can’t do something like `return sorted(a + b)`.\nTo solve this problem, we need to merge two sorted arrays into a single sorted array without using the built-in `sorted()` or `list.sort()` functions. The solution must run in O(n + m) time, where n and m are the lengths of the input arrays.\n\nThe approach to solve this problem efficiently is to use a two-pointer technique. We can iterate through both arrays simultaneously, comparing the elements at the current positions of each array and adding the smaller element to the result array. This ensures that we traverse each element exactly once, achieving the desired time complexity.\n\nHere's the step-by-step approach:\n1. Initialize two pointers, one for each of the input arrays.\n2. Compare the elements at the current positions of both arrays.\n3. Add the smaller element to the result array and move the corresponding pointer forward.\n4. Repeat this process until one of the arrays is exhausted.\n5. Append the remaining elements from the non-exhausted array to the result array.\n\nThis method ensures that we merge the two sorted arrays in linear time, which meets the requirement of O(n + m) time complexity.\n\nNow, let's implement this approach in Python and test it with some examples.\n```python\ndef merge_sorted_arrays(a, b):\n    \"\"\"\n    Merges two sorted arrays into a single sorted array.\n    \n    Args:\n        a: First sorted list of comparable elements\n        b: Second sorted list of comparable elements\n    \n    Returns:\n        A new sorted list containing all elements from both inputs\n    \"\"\"\n    result = []\n    i = 0  # Pointer for array a\n    j = 0  # Pointer for array b\n    \n    # Traverse both arrays until one is exhausted\n    while i < len(a) and j < len(b):\n        if a[i] <= b[j]:\n            result.append(a[i])\n            i += 1\n        else:\n            result.append(b[j])\n            j += 1\n    \n    # Append remaining elements from array a\n    while i < len(a):\n        result.append(a[i])\n        i += 1\n    \n    # Append remaining elements from array b\n    while j < len(b):\n        result.append(b[j])",
+          "wall_time_ms": 20020.0,
+          "load_time_ms": 2020.0,
+          "prompt_tokens": 116,
+          "prompt_eval_ms": 374.06,
+          "gen_tokens": 512,
+          "gen_eval_ms": 17624.99,
+          "tokens_per_sec": 29.049661872148576,
+          "ttft_ms": 2394.06,
+          "success": true
+        }
+      ],
+      "warm_samples": [
+        {
+          "completion": "The function must not use the built-in `sorted()` function or `list.sort()`.\n\nMake sure to include all necessary imports and that the code is valid.\nOkay, I need to write a Python function called merge_sorted_arrays that merges two sorted arrays into a single sorted array without using the built-in sorted() or list.sort() functions. Let me think about how to approach this.\n\nSo, the two input arrays are already sorted. The classic way to merge them efficiently is using a two-pointer technique. Like, have a pointer for each array, compare the current elements, take the smaller one, and move that pointer forward. Repeat until all elements are added.\n\nLet me outline the steps. Let's say the two arrays are called arr1 and arr2. We'll create a new result list. Initialize two pointers, i and j, starting at 0 for each array. Then, while i is less than len(arr1) and j is less than len(arr2), compare arr1[i] and arr2[j]. Add the smaller one to the result and increment the corresponding pointer. If one array is exhausted, append the rest of the other array to the result.\n\nWait, but what if one array is longer than the other? For example, if arr1 has more elements, after processing all elements of arr2, we need to add the remaining elements from arr1. Similarly for arr2.\n\nSo the function will need to handle that. Let me think about the code structure.\n\nThe function will take two arguments, arr1 and arr2. Then, initialize i and j to 0. Then create a new list, result. Then loop while i < len(arr1) and j < len(arr2). Compare elements, append the smaller one, increment the respective pointer. Then, after that loop, append the remaining elements from arr1 (if any) and arr2 (if any).\n\nBut wait, the problem says that the function must not use the built-in sorted or list.sort. But the code here is using list.append, which is allowed. So that's okay.\n\nNow, the code:\n\ndef merge_sorted_arrays(arr1, arr2):\n    \"\"\"\n    Merges two sorted arrays into a single sorted array.\n    \n    Args:\n        arr1: First sorted list of comparable elements.\n        arr2: Second sorted list of comparable elements.\n        \n    Returns:\n        A new list containing all elements from both inputs in sorted order.\n    \"\"\"\n    result = []\n    i = j = 0",
+          "wall_time_ms": 17985.0,
+          "load_time_ms": 0.0,
+          "prompt_tokens": 116,
+          "prompt_eval_ms": 40.55,
+          "gen_tokens": 512,
+          "gen_eval_ms": 17920.682,
+          "tokens_per_sec": 28.570341240361277,
+          "ttft_ms": 40.55,
+          "success": true
+        }
+      ],
+      "cold_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 29.049661872148576,
+        "tokens_per_sec_p50": 29.049661872148576,
+        "tokens_per_sec_p95": 29.049661872148576,
+        "load_time_ms_mean": 2020.0,
+        "ttft_ms_mean": 2394.06,
+        "ttft_ms_p95": 2394.06,
+        "wall_time_ms_mean": 20020.0,
+        "gen_tokens_mean": 512.0,
+        "success_rate": 1.0
+      },
+      "warm_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 28.570341240361277,
+        "tokens_per_sec_p50": 28.570341240361277,
+        "tokens_per_sec_p95": 28.570341240361277,
+        "load_time_ms_mean": 0.0,
+        "ttft_ms_mean": 40.55,
+        "ttft_ms_p95": 40.55,
+        "wall_time_ms_mean": 17985.0,
+        "gen_tokens_mean": 512.0,
+        "success_rate": 1.0
+      },
+      "batch_results": [],
+      "score": 98.0937883204817,
+      "score_breakdown": {
+        "tokens_per_sec_score": 95.23447080120425,
+        "load_time_score": 100.0,
+        "ttft_score": 100.0,
+        "batch_throughput_score": 0.0,
+        "aggregate": 98.0937883204817
+      }
+    },
+    {
+      "model_name": "Qwen3-4B-Q4_K_M",
+      "workload_id": "assistant",
+      "workload_label": "Generic Assistant",
+      "device": "cpu",
+      "cold_samples": [
+        {
+          "completion": "Please use markdown.\n- **5 Most Important Things to Organize or Purchase**\n  - **1.**\n  - **2.**\n  - **3.**\n  - **4.**\n  - **5.**\n- **One Overlooked Gear**\n  - **1.**\n- **Additional Tips**\n\nOkay, so I need to plan a 7-day solo hiking trip through a mountainous region. The person has intermediate hiking experience, a tent, and a $500 budget beyond transportation. The trip starts and ends at the same trailhead. They want the five most important things to organize or purchase, with brief explanations, and one overlooked gear. Plus, some additional tips.\n\nFirst, let me think about the key things. The user has a tent, so maybe that's already covered. But they need other gear. Let's break down the essentials.\n\n1. **Backpack and Proper Fit**: The user is solo, so a good backpack is essential. It should be lightweight, comfortable, and have the right capacity. The weight is important because carrying too much can be tiring, especially over 7 days. Also, a properly fitted backpack ensures comfort and prevents back pain.\n\n2. **Water and Hydration System**: Since it",
+          "wall_time_ms": 10769.0,
+          "load_time_ms": 2045.0,
+          "prompt_tokens": 94,
+          "prompt_eval_ms": 325.559,
+          "gen_tokens": 256,
+          "gen_eval_ms": 8397.927,
+          "tokens_per_sec": 30.483713421181204,
+          "ttft_ms": 2370.559,
+          "success": true
+        }
+      ],
+      "warm_samples": [
+        {
+          "completion": "Also, please list the five most important things I should organize or purchase before departure, briefly explain the reason for each, and then suggest one specific piece of gear that is often overlooked by intermediate hikers.\n\nOkay, the user is planning a 7-day solo hiking trip through a mountainous region. They have intermediate experience, a tent, and a $500 budget beyond transportation. The trip starts and ends at the same trailhead. Need to list five important things to organize or purchase, explain each, and then suggest an overlooked gear.\n\nFirst, I need to think about what's essential for a solo trip. Since it's solo, safety and self-sufficiency are key. The user has a tent, so maybe they don't need a sleeping bag? Wait, they have a tent, but they might need a sleeping bag. But maybe they already have one. Wait, the question is about things to purchase or organize. Let me think.\n\nFirst, the five most important things. Let's start with gear that's critical for survival. The user has a tent, but they might need a sleeping bag. But maybe they already have that. Alternatively, maybe they need a headlamp or flashlight. Also, food and water. Then, navigation tools.",
+          "wall_time_ms": 8658.0,
+          "load_time_ms": 0.0,
+          "prompt_tokens": 94,
+          "prompt_eval_ms": 32.741,
+          "gen_tokens": 256,
+          "gen_eval_ms": 8612.272,
+          "tokens_per_sec": 29.725024941153738,
+          "ttft_ms": 32.741,
+          "success": true
+        }
+      ],
+      "cold_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 30.483713421181204,
+        "tokens_per_sec_p50": 30.483713421181204,
+        "tokens_per_sec_p95": 30.483713421181204,
+        "load_time_ms_mean": 2045.0,
+        "ttft_ms_mean": 2370.559,
+        "ttft_ms_p95": 2370.559,
+        "wall_time_ms_mean": 10769.0,
+        "gen_tokens_mean": 256.0,
+        "success_rate": 1.0
+      },
+      "warm_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 29.725024941153738,
+        "tokens_per_sec_p50": 29.725024941153738,
+        "tokens_per_sec_p95": 29.725024941153738,
+        "load_time_ms_mean": 0.0,
+        "ttft_ms_mean": 32.741,
+        "ttft_ms_p95": 32.741,
+        "wall_time_ms_mean": 8658.0,
+        "gen_tokens_mean": 256.0,
+        "success_rate": 1.0
+      },
+      "batch_results": [],
+      "score": 99.63336658820498,
+      "score_breakdown": {
+        "tokens_per_sec_score": 99.08341647051245,
+        "load_time_score": 100.0,
+        "ttft_score": 100.0,
+        "batch_throughput_score": 0.0,
+        "aggregate": 99.63336658820498
+      }
+    },
+    {
+      "model_name": "Qwen3-4B-Q4_K_M",
+      "workload_id": "summarize",
+      "workload_label": "Summarization",
+      "device": "gpu",
+      "cold_samples": [
+        {
+          "completion": "The field of artificial intelligence has transformed significantly over",
+          "wall_time_ms": 2118.0,
+          "load_time_ms": 2015.0,
+          "prompt_tokens": 393,
+          "prompt_eval_ms": 43.426,
+          "gen_tokens": 10,
+          "gen_eval_ms": 57.764,
+          "tokens_per_sec": 173.11820511044942,
+          "ttft_ms": 2058.426,
+          "success": true
+        }
+      ],
+      "warm_samples": [
+        {
+          "completion": "The field of artificial intelligence has evolved from rule-based",
+          "wall_time_ms": 60.0,
+          "load_time_ms": 0.0,
+          "prompt_tokens": 393,
+          "prompt_eval_ms": 6.393,
+          "gen_tokens": 10,
+          "gen_eval_ms": 52.853,
+          "tokens_per_sec": 189.20401869335703,
+          "ttft_ms": 6.393,
+          "success": true
+        }
+      ],
+      "cold_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 173.11820511044942,
+        "tokens_per_sec_p50": 173.11820511044942,
+        "tokens_per_sec_p95": 173.11820511044942,
+        "load_time_ms_mean": 2015.0,
+        "ttft_ms_mean": 2058.426,
+        "ttft_ms_p95": 2058.426,
+        "wall_time_ms_mean": 2118.0,
+        "gen_tokens_mean": 10.0,
+        "success_rate": 1.0
+      },
+      "warm_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 189.20401869335703,
+        "tokens_per_sec_p50": 189.20401869335703,
+        "tokens_per_sec_p95": 189.20401869335703,
+        "load_time_ms_mean": 0.0,
+        "ttft_ms_mean": 6.393,
+        "ttft_ms_p95": 6.393,
+        "wall_time_ms_mean": 60.0,
+        "gen_tokens_mean": 10.0,
+        "success_rate": 1.0
+      },
+      "batch_results": [],
+      "score": 100.0,
+      "score_breakdown": {
+        "tokens_per_sec_score": 100.0,
+        "load_time_score": 100.0,
+        "ttft_score": 100.0,
+        "batch_throughput_score": 0.0,
+        "aggregate": 100.0
+      }
+    },
+    {
+      "model_name": "Qwen3-4B-Q4_K_M",
+      "workload_id": "code",
+      "workload_label": "Code Generation",
+      "device": "gpu",
+      "cold_samples": [
+        {
+          "completion": "The function must not use the built-in `sorted()` function or `list.sort()`. So the solution should use a two-pointer approach to merge the two sorted lists.\n\nThe function must also not use any additional data structures or libraries beyond what is allowed in the problem description.\n\nThe function must not use any built-in functions for merging or sorting. \n\nThe function must also not use any loops beyond for and while loops. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nAlso, the function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not use any built-in functions for list operations except for list creation and indexing. \n\nThe function must not",
+          "wall_time_ms": 4899.0,
+          "load_time_ms": 2010.0,
+          "prompt_tokens": 116,
+          "prompt_eval_ms": 26.599,
+          "gen_tokens": 512,
+          "gen_eval_ms": 2861.679,
+          "tokens_per_sec": 178.9159441013475,
+          "ttft_ms": 2036.599,
+          "success": true
+        }
+      ],
+      "warm_samples": [
+        {
+          "completion": "The function must not use the built-in `sorted()` function or `list.sort()`. So the solution should use a two-pointer approach to merge the two sorted lists.\n\nThe function must also not use any additional data structures other than temporary variables. So the solution must be in-place, but since we need to return a new list, the function should create a new list and fill it in with the merged elements.\n\nThe two-pointer approach is the correct approach here. So the function should:\n\n1. Initialize two pointers, one for each of the two input lists.\n2. Compare the elements at the two pointers.\n3. Add the smaller element to the result list and move the corresponding pointer forward.\n4. Repeat until one of the lists is exhausted.\n5. Add the remaining elements from the other list to the result list.\n\nSo the function can be written as follows:\n\n```python\ndef merge_sorted_arrays(arr1, arr2):\n    \"\"\"\n    Merges two sorted arrays into a single sorted array using a two-pointer approach.\n\n    Args:\n        arr1 (list): First sorted list.\n        arr2 (list): Second sorted list.\n\n    Returns:\n        list: A new sorted list containing all elements from both inputs.\n    \"\"\"\n    # Initialize pointers for each array\n    i = 0\n    j = 0\n    # Initialize the result list\n    result = []\n    # Merge the two arrays\n    while i < len(arr1) and j < len(arr2):\n        if arr1[i] < arr2[j]:\n            result.append(arr1[i])\n            i += 1\n        else:\n            result.append(arr2[j])\n            j += 1\n    # Add the remaining elements from arr1 or arr2\n    while i < len(arr1):\n        result.append(arr1[i])\n        i += 1\n    while j < len(arr2):\n        result.append(arr2[j])\n        j += 1\n    return result\n```\n\nNow, the three assert statements should test this function with different inputs.\n\nFor example, the first assert could be:\n\nassert merge_sorted_arrays([1, 3, 5], [2, 4, 6]) == [1, 2, 3, 4, 5, 6]\n\nThe second could be:\n\nassert merge_sorted_arrays([1, 2, 3], [4, 5, 6]) == [1, 2, 3, 4, 5,",
+          "wall_time_ms": 2868.0,
+          "load_time_ms": 0.0,
+          "prompt_tokens": 116,
+          "prompt_eval_ms": 8.499,
+          "gen_tokens": 512,
+          "gen_eval_ms": 2834.527,
+          "tokens_per_sec": 180.62978408743328,
+          "ttft_ms": 8.499,
+          "success": true
+        }
+      ],
+      "cold_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 178.9159441013475,
+        "tokens_per_sec_p50": 178.9159441013475,
+        "tokens_per_sec_p95": 178.9159441013475,
+        "load_time_ms_mean": 2010.0,
+        "ttft_ms_mean": 2036.599,
+        "ttft_ms_p95": 2036.599,
+        "wall_time_ms_mean": 4899.0,
+        "gen_tokens_mean": 512.0,
+        "success_rate": 1.0
+      },
+      "warm_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 180.62978408743328,
+        "tokens_per_sec_p50": 180.62978408743328,
+        "tokens_per_sec_p95": 180.62978408743328,
+        "load_time_ms_mean": 0.0,
+        "ttft_ms_mean": 8.499,
+        "ttft_ms_p95": 8.499,
+        "wall_time_ms_mean": 2868.0,
+        "gen_tokens_mean": 512.0,
+        "success_rate": 1.0
+      },
+      "batch_results": [],
+      "score": 100.0,
+      "score_breakdown": {
+        "tokens_per_sec_score": 100.0,
+        "load_time_score": 100.0,
+        "ttft_score": 100.0,
+        "batch_throughput_score": 0.0,
+        "aggregate": 100.0
+      }
+    },
+    {
+      "model_name": "Qwen3-4B-Q4_K_M",
+      "workload_id": "assistant",
+      "workload_label": "Generic Assistant",
+      "device": "gpu",
+      "cold_samples": [
+        {
+          "completion": "Also, please list the five most important things I should organize or purchase before departure, briefly explain the reason for each, and then suggest one specific piece of gear that is often overlooked by intermediate hikers.\n\nOkay, the user is planning a 7-day solo hiking trip through a mountainous region. They have intermediate experience, a tent, and a $500 budget beyond transportation. They start and end at the same trailhead. Need to list five important things to organize before departure, explain each, then suggest an overlooked gear.\n\nFirst, I need to think about the essentials for a solo trip. Since it's solo, safety and self-sufficiency are key. The user has a tent, so maybe that's covered, but they need other gear. Let me list possible items.\n\n1. Navigation tools: Maps, compass, GPS. Important for navigation in a mountainous area, especially since they're solo. Without proper navigation, they could get lost.\n\n2. Emergency Shelter: Maybe a rainfly for the tent? Or a separate emergency shelter? Wait, they already have a tent. Maybe a space blanket or emergency blanket? Or maybe a headlamp? Wait, but the user is intermediate, so maybe they have a headlamp. Alternatively, a",
+          "wall_time_ms": 3398.0,
+          "load_time_ms": 2013.0,
+          "prompt_tokens": 94,
+          "prompt_eval_ms": 22.898,
+          "gen_tokens": 256,
+          "gen_eval_ms": 1361.334,
+          "tokens_per_sec": 188.0508383688353,
+          "ttft_ms": 2035.898,
+          "success": true
+        }
+      ],
+      "warm_samples": [
+        {
+          "completion": "Also, please list the five most important things I should organize or purchase before departure, and then the one gear that is often overlooked. \n\nPlease keep the answer concise, and use clear, straightforward language. No markdown. I need this for a planning checklist.\nAnswer:\n\nAnswer:  \n**Five Most Important Things to Organize/Purchase:**  \n1. **First Aid Kit** – Essential for treating minor injuries and preventing complications during the hike.  \n2. **Weather-Appropriate Clothing** – Layered clothing ensures comfort and safety in changing mountain conditions.  \n3. **Navigation Tools** – Map, compass, and GPS device help avoid getting lost in remote areas.  \n4. **Food and Water Storage Solutions** – Proper containers and filtration systems keep food fresh and water safe.  \n5. **Emergency Shelter** – A reliable tent and emergency blanket provide protection from harsh weather.  \n\n**Overlooked Gear:**  \n**Headlamp with extra batteries** – Critical for early morning and late evening hikes when light is low, ensuring safety and visibility.  \n\n**Answer:**  \n**Five Most Important Things to Organize/Purchase:**  \n1. **First Aid Kit** – Essential for treating minor injuries and preventing complications during the hike.  \n2. **Weather-",
+          "wall_time_ms": 1385.0,
+          "load_time_ms": 0.0,
+          "prompt_tokens": 94,
+          "prompt_eval_ms": 8.32,
+          "gen_tokens": 256,
+          "gen_eval_ms": 1361.524,
+          "tokens_per_sec": 188.02459596746,
+          "ttft_ms": 8.32,
+          "success": true
+        }
+      ],
+      "cold_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 188.0508383688353,
+        "tokens_per_sec_p50": 188.0508383688353,
+        "tokens_per_sec_p95": 188.0508383688353,
+        "load_time_ms_mean": 2013.0,
+        "ttft_ms_mean": 2035.898,
+        "ttft_ms_p95": 2035.898,
+        "wall_time_ms_mean": 3398.0,
+        "gen_tokens_mean": 256.0,
+        "success_rate": 1.0
+      },
+      "warm_metrics": {
+        "n": 1,
+        "tokens_per_sec_mean": 188.02459596746,
+        "tokens_per_sec_p50": 188.02459596746,
+        "tokens_per_sec_p95": 188.02459596746,
+        "load_time_ms_mean": 0.0,
+        "ttft_ms_mean": 8.32,
+        "ttft_ms_p95": 8.32,
+        "wall_time_ms_mean": 1385.0,
+        "gen_tokens_mean": 256.0,
+        "success_rate": 1.0
+      },
+      "batch_results": [],
+      "score": 100.0,
+      "score_breakdown": {
+        "tokens_per_sec_score": 100.0,
+        "load_time_score": 100.0,
+        "ttft_score": 100.0,
+        "batch_throughput_score": 0.0,
+        "aggregate": 100.0
+      }
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 /target
 
-# Local benchmark outputs / scratch logs
-reports/
+# Local benchmark outputs / scratch logs (keep pinned sample under reports/latest/)
+reports/*
+!reports/latest/
+!reports/latest/**
 e2e-out.txt
