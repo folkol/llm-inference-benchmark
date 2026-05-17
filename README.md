@@ -4,13 +4,13 @@ A single compiled CLI that measures LLM inference performance across machines an
 
 ## Cross-machine sample throughput
 
-These numbers come from checked-in benchmark outputs where each machine ran the **same twelve scenarios**: models **Qwen3-0.6B** and **Qwen3-4B** (Q4_K_M), workloads **Summarization**, **Code Generation**, and **Generic Assistant**, each on **CPU** and **GPU**. Every cell is the rounded mean **tokens/s** for the generation phase (**warm** = steady repeats after load; **cold** = first completion in that scenario). **Columns** put **Windows and Linux on the same physical Ultra 9 285K + RTX 4080 machine** next to each other, followed by Ryzen **9950X3D + RTX 5090** (Windows only in these samples) and **Apple M4**. **CPU** and **GPU** use separate tables so OS comparisons stay within one accelerator type. **`llama_cpp_version`** was often unset in older captures—treat cross-host deltas as directional, not laboratory-precise.
+These numbers come from checked-in benchmark outputs where each machine ran the **same twelve scenarios**: models **Qwen3-0.6B** and **Qwen3-4B** (Q4_K_M), workloads **Summarization**, **Code Generation**, and **Generic Assistant**, each on **CPU** and **GPU**. Every cell is the rounded measured **tokens/s** for the generation phase (**warm** = repeat after load; **cold** = first completion in that scenario). **Columns** put **Windows and Linux on the same physical Ultra 9 285K + RTX 4080 machine** next to each other, followed by Ryzen **9950X3D + RTX 5090** (Windows only in these samples) and **Apple M4**. **CPU** and **GPU** use separate tables so OS comparisons stay within one accelerator type. **`llama_cpp_version`** was often unset in older captures—treat cross-host deltas as directional, not laboratory-precise.
 
 Do not treat this as a universal model-family ranking. These samples cover only two Qwen3 Q4_K_M models; other families, quantizations, prompt shapes, long-context runs, and larger models can shift bottlenecks substantially. In particular, larger models may hit VRAM/offload cliffs where throughput changes nonlinearly.
 
 Scenario labels: **Summarization** asks for a one-sentence summary of a fixed ~600-token article and caps output at 10 tokens; **Code Generation** asks for a Python `merge_sorted_arrays` implementation plus asserts and caps output at 512 tokens; **Generic Assistant** asks for practical planning advice for a 7-day solo hiking trip and caps output at 256 tokens.
 
-**Warm throughput (mean tok/s, generation phase)**
+**Warm throughput (tok/s, generation phase)**
 
 **CPU**
 
@@ -34,7 +34,7 @@ Scenario labels: **Summarization** asks for a one-sentence summary of a fixed ~6
 | Qwen3-4B · Code Generation | 185 | 199 | 308 | 36 |
 | Qwen3-4B · Generic Assistant | 188 | 201 | 310 | 36 |
 
-**Cold throughput (mean tok/s, first completion after load)**
+**Cold throughput (tok/s, first completion after load)**
 
 **CPU**
 
@@ -62,7 +62,7 @@ _Regenerate these tables and the HTML view with `python scripts/gen_cross_machin
 
 ## Latest local run (Windows · Ultra 9 285K · RTX 4080 SUPER)
 
-This run (`20260517T113755`) uses the expanded six-model matrix in `bench.toml`. Values are rounded mean generation **tokens/s**; **warm** is the repeat after load and **cold** is the first completion in that scenario.
+This run (`20260517T113755`) uses the expanded six-model matrix in `bench.toml`. Values are rounded measured generation **tokens/s**; **warm** is the repeat after load and **cold** is the first completion in that scenario.
 
 | Model / workload | CPU warm | CPU cold | GPU warm | GPU cold |
 |---|---:|---:|---:|---:|
@@ -97,7 +97,7 @@ This run (`20260517T113755`) uses the expanded six-model matrix in `bench.toml`.
 
 ## Metrics collected
 
-- **Tokens/second** — mean / p50 / p95 from the generation phase (**warm** repeats and **cold** first completion)
+- **Tokens/second** — measured generation throughput for the **cold** first completion and configured **warm** repeats (current default: one warm repeat)
 - **Load time** — model ready (from server start through health / first use, as recorded per scenario)
 - **Time to first token (TTFT)** on the cold path
 - **Memory** — where available from llama.cpp output
