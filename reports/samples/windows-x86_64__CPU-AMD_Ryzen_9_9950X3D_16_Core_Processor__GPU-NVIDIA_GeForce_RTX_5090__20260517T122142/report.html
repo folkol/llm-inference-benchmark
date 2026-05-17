@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LLM Benchmark Report – 20260517T122142</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d2e; --accent: #7c6af7;
+    --text: #e2e8f0; --muted: #94a3b8; --border: #2d3748;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; padding: 2rem; }
+  h1 { font-size: 1.8rem; color: var(--accent); margin-bottom: 0.25rem; }
+  h2 { font-size: 1.2rem; color: var(--muted); margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+  .meta { color: var(--muted); font-size: 0.85rem; margin-bottom: 2rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+  .card h3 { font-size: 0.9rem; color: var(--muted); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: .05em; }
+  canvas { max-height: 300px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th { background: var(--border); color: var(--muted); text-align: left; padding: 0.5rem 0.75rem; font-weight: 600; }
+  td { padding: 0.45rem 0.75rem; border-bottom: 1px solid var(--border); }
+  tr:hover td { background: rgba(124,106,247,.07); }
+  .score { font-weight: 700; }
+  .score-hi { color: var(--green); }
+  .score-mid { color: var(--yellow); }
+  .score-lo { color: var(--red); }
+  .hw-table td:first-child { color: var(--muted); width: 160px; }
+</style>
+</head>
+<body>
+<h1>LLM Benchmark Report</h1>
+<p class="meta">Run ID: 20260517T122142 &nbsp;|&nbsp; 2026-05-17T12:21:42.936280700+00:00</p>
+
+<h2>Hardware</h2>
+<div class="card">
+  <table class="hw-table"><tr><td>OS</td><td>windows 11 (26200)</td></tr>
+<tr><td>CPU</td><td>AMD Ryzen 9 9950X3D 16-Core Processor           (16 physical / 32 logical)</td></tr>
+<tr><td>RAM</td><td>61.7 GB</td></tr>
+<tr><td>GPU</td><td>NVIDIA GeForce RTX 5090 [NVIDIA] (32607 MB VRAM)</td></tr>
+<tr><td>llama.cpp</td><td>unknown</td></tr></table>
+</div>
+
+<h2>Charts</h2>
+<div class="grid">
+  <div class="card"><h3>Aggregate Score (higher = better)</h3><canvas id="chartScore"></canvas></div>
+  <div class="card"><h3>Tokens / second – warm (higher = better)</h3><canvas id="chartTps"></canvas></div>
+  <div class="card"><h3>Cold-start load time (ms, lower = better)</h3><canvas id="chartLoad"></canvas></div>
+  <div class="card"><h3>Time to first token – cold (ms, lower = better)</h3><canvas id="chartTtft"></canvas></div>
+</div>
+
+<h2>Scenario Results</h2>
+<div class="card" style="overflow-x:auto">
+<table>
+  <thead>
+    <tr>
+      <th>Model</th><th>Workload</th><th>Device</th>
+      <th>TPS (mean)</th><th>TPS (p50)</th>
+      <th>Load (ms)</th><th>TTFT cold (ms)</th>
+      <th>Score</th>
+    </tr>
+  </thead>
+  <tbody><tr>
+  <td>Qwen3-0.6B-Q4_K_M</td><td>Summarization</td><td>cpu</td>
+  <td>106.2</td><td>106.2</td>
+  <td>1029</td><td>1189</td>
+  <td class="score score-hi">100.0</td>
+</tr><tr>
+  <td>Qwen3-0.6B-Q4_K_M</td><td>Code Generation</td><td>cpu</td>
+  <td>104.9</td><td>104.9</td>
+  <td>1016</td><td>1073</td>
+  <td class="score score-hi">100.0</td>
+</tr><tr>
+  <td>Qwen3-0.6B-Q4_K_M</td><td>Generic Assistant</td><td>cpu</td>
+  <td>111.2</td><td>111.2</td>
+  <td>1015</td><td>1065</td>
+  <td class="score score-hi">100.0</td>
+</tr><tr>
+  <td>Qwen3-0.6B-Q4_K_M</td><td>Summarization</td><td>gpu</td>
+  <td>767.5</td><td>767.5</td>
+  <td>1011</td><td>1033</td>
+  <td class="score score-hi">100.0</td>
+</tr><tr>
+  <td>Qwen3-0.6B-Q4_K_M</td><td>Code Generation</td><td>gpu</td>
+  <td>683.3</td><td>683.3</td>
+  <td>1014</td><td>1035</td>
+  <td class="score score-hi">100.0</td>
+</tr><tr>
+  <td>Qwen3-0.6B-Q4_K_M</td><td>Generic Assistant</td><td>gpu</td>
+  <td>684.3</td><td>684.3</td>
+  <td>1011</td><td>1031</td>
+  <td class="score score-hi">100.0</td>
+</tr><tr>
+  <td>Qwen3-4B-Q4_K_M</td><td>Summarization</td><td>cpu</td>
+  <td>24.4</td><td>24.4</td>
+  <td>2022</td><td>2851</td>
+  <td class="score score-hi">92.5</td>
+</tr><tr>
+  <td>Qwen3-4B-Q4_K_M</td><td>Code Generation</td><td>cpu</td>
+  <td>21.5</td><td>21.5</td>
+  <td>2012</td><td>2266</td>
+  <td class="score score-hi">88.6</td>
+</tr><tr>
+  <td>Qwen3-4B-Q4_K_M</td><td>Generic Assistant</td><td>cpu</td>
+  <td>21.5</td><td>21.5</td>
+  <td>1510</td><td>1731</td>
+  <td class="score score-hi">88.7</td>
+</tr><tr>
+  <td>Qwen3-4B-Q4_K_M</td><td>Summarization</td><td>gpu</td>
+  <td>338.4</td><td>338.4</td>
+  <td>1519</td><td>1555</td>
+  <td class="score score-hi">100.0</td>
+</tr><tr>
+  <td>Qwen3-4B-Q4_K_M</td><td>Code Generation</td><td>gpu</td>
+  <td>308.0</td><td>308.0</td>
+  <td>1509</td><td>1535</td>
+  <td class="score score-hi">100.0</td>
+</tr><tr>
+  <td>Qwen3-4B-Q4_K_M</td><td>Generic Assistant</td><td>gpu</td>
+  <td>310.2</td><td>310.2</td>
+  <td>1520</td><td>1544</td>
+  <td class="score score-hi">100.0</td>
+</tr></tbody>
+</table>
+</div>
+
+<script>
+const LABELS = ["Qwen3-0.6B-Q4_K_M / summarize / cpu","Qwen3-0.6B-Q4_K_M / code / cpu","Qwen3-0.6B-Q4_K_M / assistant / cpu","Qwen3-0.6B-Q4_K_M / summarize / gpu","Qwen3-0.6B-Q4_K_M / code / gpu","Qwen3-0.6B-Q4_K_M / assistant / gpu","Qwen3-4B-Q4_K_M / summarize / cpu","Qwen3-4B-Q4_K_M / code / cpu","Qwen3-4B-Q4_K_M / assistant / cpu","Qwen3-4B-Q4_K_M / summarize / gpu","Qwen3-4B-Q4_K_M / code / gpu","Qwen3-4B-Q4_K_M / assistant / gpu"];
+const TPS    = [106.24,104.86,111.22,767.52,683.32,684.34,24.36,21.46,21.52,338.41,308.05,310.24];
+const SCORE  = [100.0,100.0,100.0,100.0,100.0,100.0,92.48,88.62,88.7,100.0,100.0,100.0];
+const LOAD   = [1029.0,1016.0,1015.0,1011.0,1014.0,1011.0,2022.0,2012.0,1510.0,1519.0,1509.0,1520.0];
+const TTFT   = [1188.6,1073.0,1064.61,1033.34,1034.58,1030.54,2850.64,2266.49,1731.01,1554.68,1534.76,1543.59];
+
+const PALETTE = ['#7c6af7','#22c55e','#f59e0b','#38bdf8','#f472b6','#a78bfa','#34d399'];
+
+function color(i) { return PALETTE[i % PALETTE.length]; }
+
+function barChart(id, data, label, reversed) {
+  const ctx = document.getElementById(id).getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: LABELS,
+      datasets: [{ label, data, backgroundColor: LABELS.map((_, i) => color(i)), borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#2d3748' }, ticks: { color: '#94a3b8' } },
+        y: { grid: { display: false }, ticks: { color: '#e2e8f0', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+barChart('chartScore', SCORE, 'Score');
+barChart('chartTps',   TPS,   'tok/s');
+barChart('chartLoad',  LOAD,  'ms', true);
+barChart('chartTtft',  TTFT,  'ms', true);
+</script>
+</body>
+</html>
