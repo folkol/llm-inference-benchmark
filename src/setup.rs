@@ -347,8 +347,17 @@ fn path_basename(name: &str) -> Option<&str> {
 }
 
 fn should_extract_file(basename: &str) -> bool {
-    let ext = basename.rsplit('.').next().unwrap_or("").to_lowercase();
-    EXECUTABLES.contains(&basename) || LIB_EXTENSIONS.contains(&ext.as_str())
+    let lowercase = basename.to_lowercase();
+    if EXECUTABLES.contains(&basename) {
+        return true;
+    }
+    // Match .so, .so.1, .so.1.2.3, .dll, .dylib
+    LIB_EXTENSIONS
+        .iter()
+        .any(|ext| {
+            lowercase.ends_with(ext) || 
+            lowercase.contains(&format!("{}.", ext))
+        })
 }
 
 fn write_extracted_file(dest: &Path, basename: &str, data: &[u8]) -> anyhow::Result<()> {
@@ -357,11 +366,52 @@ fn write_extracted_file(dest: &Path, basename: &str, data: &[u8]) -> anyhow::Res
     out_file.write_all(data)?;
 
     #[cfg(unix)]
-    if EXECUTABLES.contains(&basename) {
+    {
         use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&out_path, std::fs::Permissions::from_mode(0o755))?;
+        if EXECUTABLES.contains(&basename) {
+            std::fs::set_permissions(&out_path, std::fs::Permissions::from_mode(0o755))?;
+        } else {
+            // Ensure libraries are also readable/executable if needed (some distros want +x on .so)
+            std::fs::set_permissions(&out_path, std::fs::Permissions::from_mode(0o644))?;
+        }
+
+        // Create symlinks for versioned libraries (e.g., libllama.so.0.0.9189 -> libllama.so.0 -> libllama.so)
+        if basename.contains(".so") {
+            create_library_symlinks(dest, basename)?;
+        }
     }
 
+    Ok(())
+}
+
+#[cfg(unix)]
+fn create_library_symlinks(dest: &Path, basename: &str) -> anyhow::Result<()> {
+    // If we have libllama.so.0.0.9189
+    // We want to create:
+    //   libllama.so.0
+    //   libllama.so
+    let parts: Vec<&str> = basename.split('.').collect();
+    if parts.len() > 2 && parts[1] == "so" {
+        let mut current_name = parts[0].to_string() + ".so";
+        // Create the base .so if it doesn't exist
+        let base_path = dest.join(&current_name);
+        if !base_path.exists() {
+            let _ = std::os::unix::fs::symlink(basename, base_path);
+        }
+
+        // Create intermediate versioned symlinks (e.g., .so.0)
+        for i in 2..parts.len() {
+            current_name.push('.');
+            current_name.push_str(parts[i]);
+            if current_name == basename {
+                break;
+            }
+            let link_path = dest.join(&current_name);
+            if !link_path.exists() {
+                let _ = std::os::unix::fs::symlink(basename, link_path);
+            }
+        }
+    }
     Ok(())
 }
 

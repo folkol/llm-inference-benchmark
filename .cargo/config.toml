@@ -11,6 +11,6 @@ rustflags = ["-C", "target-feature=+crt-static"]
 
 # Linux: link libgcc and libstdc++ statically so the binary runs on older distros.
 [target.x86_64-unknown-linux-gnu]
-rustflags = ["-C", "target-feature=+crt-static", "-C", "link-arg=-static-libgcc", "-C", "link-arg=-static-libstdc++"]
+rustflags = ["-C", "link-arg=-static-libgcc", "-C", "link-arg=-static-libstdc++"]
 
 # macOS: no special flags needed – the system libSystem is stable and ABI-compatible.

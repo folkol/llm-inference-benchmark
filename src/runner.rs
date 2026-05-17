@@ -185,12 +185,9 @@ fn run_scenario(
     let scenario_result = (|| -> anyhow::Result<ScenarioResult> {
         print!("  server load ... ");
         let _ = std::io::Write::flush(&mut std::io::stdout());
-        if !wait_for_server_ready(
-            &client,
-            &base_url,
-            std::time::Duration::from_secs(timeout_secs),
-        ) {
-            anyhow::bail!("llama-server did not finish loading within {}s", timeout_secs);
+        let wait_timeout = std::time::Duration::from_secs(timeout_secs);
+        if !wait_for_server_ready(&mut server, &client, &base_url, wait_timeout) {
+            anyhow::bail!("llama-server failed to start or load model within {}s", timeout_secs);
         }
         let load_ms = server_start.elapsed().as_millis() as f64;
         println!("ready in {:.0}ms", load_ms);
@@ -262,6 +259,20 @@ fn spawn_server(
     parallel: u32,
 ) -> anyhow::Result<std::process::Child> {
     let mut server_cmd = std::process::Command::new(server_exe);
+
+    // On Linux, we might need to point LD_LIBRARY_PATH to the directory containing
+    // the server executable if it has bundled shared libraries (like libllama.so).
+    #[cfg(target_os = "linux")]
+    if let Some(parent) = server_exe.parent() {
+        if let Ok(abs_parent) = parent.canonicalize() {
+            let mut ld_path = abs_parent.to_string_lossy().into_owned();
+            if let Ok(existing) = std::env::var("LD_LIBRARY_PATH") {
+                ld_path = format!("{}:{}", ld_path, existing);
+            }
+            server_cmd.env("LD_LIBRARY_PATH", ld_path);
+        }
+    }
+
     let total_context = model.context_length.saturating_mul(parallel);
     server_cmd.arg("--model").arg(model_path);
     server_cmd.arg("--port").arg(port.to_string());
@@ -418,13 +429,21 @@ fn json_f64(json: &serde_json::Value, path: &[&str]) -> Option<f64> {
 }
 
 fn wait_for_server_ready(
+    child: &mut std::process::Child,
     client: &reqwest::blocking::Client,
     base_url: &str,
     timeout: std::time::Duration,
 ) -> bool {
     let deadline = Instant::now() + timeout;
     let health_url = format!("{}/health", base_url);
+
     while Instant::now() < deadline {
+        // Check if the process has already exited (crashed)
+        if let Ok(Some(status)) = child.try_wait() {
+            eprintln!("\n  {} llama-server exited early with status: {}", "Error:".red(), status);
+            return false;
+        }
+
         if let Ok(resp) = client
             .get(&health_url)
             .timeout(std::time::Duration::from_secs(2))
