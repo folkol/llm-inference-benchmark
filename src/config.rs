@@ -40,10 +40,6 @@ pub struct BenchConfig {
     /// Workloads to run
     #[serde(default)]
     pub workloads: Vec<WorkloadConfig>,
-
-    /// Scoring weights (values sum to 1.0)
-    #[serde(default)]
-    pub scoring: ScoringConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -86,22 +82,6 @@ pub struct WorkloadConfig {
     pub max_tokens: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ScoringConfig {
-    /// Weight for tokens/sec metric
-    #[serde(default = "default_weight_tps")]
-    pub weight_tokens_per_sec: f64,
-    /// Weight for cold-start load time (lower is better)
-    #[serde(default = "default_weight_load")]
-    pub weight_load_time: f64,
-    /// Weight for TTFT
-    #[serde(default = "default_weight_ttft")]
-    pub weight_ttft: f64,
-    /// Weight for batch throughput
-    #[serde(default = "default_weight_batch")]
-    pub weight_batch_throughput: f64,
-}
-
 fn default_devices() -> Vec<String> {
     vec!["cpu".to_string()]
 }
@@ -122,18 +102,6 @@ fn default_mixed_gpu_layers() -> u32 {
 }
 fn default_context() -> u32 {
     2048
-}
-fn default_weight_tps() -> f64 {
-    0.4
-}
-fn default_weight_load() -> f64 {
-    0.3
-}
-fn default_weight_ttft() -> f64 {
-    0.3
-}
-fn default_weight_batch() -> f64 {
-    0.0
 }
 
 pub fn load(path: &Path) -> anyhow::Result<BenchConfig> {

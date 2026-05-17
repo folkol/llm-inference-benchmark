@@ -11,12 +11,12 @@ use crate::{
     hardware::HardwareInfo,
     interrupt,
     metrics::{AggregatedMetrics, BatchMetrics, RawSample},
-    scoring::{self, ScoreBreakdown},
 };
 
 /// Top-level output of a complete benchmark run.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RunResults {
+    /// Increment when `results.json` shape changes materially.
     pub schema_version: u8,
     pub run_id: String,
     pub timestamp: String,
@@ -36,29 +36,6 @@ pub struct ScenarioResult {
     pub cold_metrics: AggregatedMetrics,
     pub warm_metrics: AggregatedMetrics,
     pub batch_results: Vec<BatchMetrics>,
-    pub score: f64,
-    pub score_breakdown: ScoreBreakdownSer,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ScoreBreakdownSer {
-    pub tokens_per_sec_score: f64,
-    pub load_time_score: f64,
-    pub ttft_score: f64,
-    pub batch_throughput_score: f64,
-    pub aggregate: f64,
-}
-
-impl From<ScoreBreakdown> for ScoreBreakdownSer {
-    fn from(s: ScoreBreakdown) -> Self {
-        Self {
-            tokens_per_sec_score: s.tokens_per_sec_score,
-            load_time_score: s.load_time_score,
-            ttft_score: s.ttft_score,
-            batch_throughput_score: s.batch_throughput_score,
-            aggregate: s.aggregate,
-        }
-    }
 }
 
 pub fn fresh_run_id() -> String {
@@ -77,7 +54,7 @@ pub fn run_matrix(
     warn_if_low_memory(cfg);
 
     let mut results = RunResults {
-        schema_version: 1,
+        schema_version: 2,
         run_id,
         timestamp: Utc::now().to_rfc3339(),
         hardware: hw.clone(),
@@ -132,11 +109,11 @@ pub fn run_matrix(
                 )?;
 
                 let line = format!(
-                    "  tps={:.1}  load={:.0}ms  ttft={:.0}ms  score={:.1}",
+                    "  warm_tps={:.1}  cold_tps={:.1}  load={:.0}ms  ttft={:.0}ms",
                     scenario.warm_metrics.tokens_per_sec_mean,
+                    scenario.cold_metrics.tokens_per_sec_mean,
                     scenario.cold_metrics.load_time_ms_mean,
                     scenario.cold_metrics.ttft_ms_mean,
-                    scenario.score
                 );
                 println!("{}", line.dimmed());
 
@@ -223,10 +200,7 @@ fn run_scenario(
     }
     let warm_metrics = AggregatedMetrics::from_samples(&warm_samples);
 
-    // 3. Compute score. Batch throughput is intentionally not measured.
     let batch_results = Vec::new();
-    let breakdown = scoring::compute_score(&warm_metrics, &cold_metrics, 0.0, &cfg.scoring);
-    let score = breakdown.aggregate;
 
     Ok(ScenarioResult {
         model_name: model.name.clone(),
@@ -238,8 +212,6 @@ fn run_scenario(
         cold_metrics,
         warm_metrics,
         batch_results,
-        score,
-        score_breakdown: breakdown.into(),
     })
     })();
 
@@ -510,8 +482,6 @@ fn skipped_scenario(
         cold_metrics: empty.clone(),
         warm_metrics: empty,
         batch_results: vec![],
-        score: 0.0,
-        score_breakdown: ScoreBreakdownSer::default(),
     }
 }
 

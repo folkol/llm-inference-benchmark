@@ -1,6 +1,6 @@
 # llmb – Cross-Platform LLM Inference Benchmark
 
-A single compiled CLI that measures LLM inference performance across machines and produces comparable reports with scores and graphs.
+A single compiled CLI that measures LLM inference performance across machines and produces comparable **tokens/second** reports (plus load time and TTFT).
 
 ## What it measures
 
@@ -10,32 +10,18 @@ A single compiled CLI that measures LLM inference performance across machines an
 | **Weight sizes** | Configurable; start with Q4_K_M quantized models that run on CPU |
 | **Workloads** | Summarization, code generation, generic assistant (fixed prompts for reproducibility) |
 | **Devices** | `cpu`, `gpu`, `auto` via llama.cpp flags |
-| **Run modes** | Cold start (fresh process per call), warm (repeated calls), batch (concurrent via llama-server) |
+| **Run modes** | First request after server load (“cold”), then **warm_runs** sequential requests on the same loaded `llama-server` (no composite score—raw metrics only) |
 
 ## Metrics collected
 
-- **Tokens/second** (generation phase, mean / p50 / p95)
-- **Load time** (cold start: process launch → model ready)
-- **Time to first token** (TTFT, cold)
-- **Batch throughput** (req/s and tok/s at batch sizes 1, 4, 8)
-- **Memory** (reported where available from llama.cpp output)
+- **Tokens/second** — mean / p50 / p95 from the generation phase (**warm** repeats and **cold** first completion)
+- **Load time** — model ready (from server start through health / first use, as recorded per scenario)
+- **Time to first token (TTFT)** on the cold path
+- **Memory** — where available from llama.cpp output
 
-## Scoring
+Concurrent batch benchmarking is optional via `batch_sizes` in config; default configs leave it empty.
 
-Each scenario receives a score in **[0–100]** built from four weighted components:
-
-| Component | Default weight |
-|-----------|---------------|
-| Tokens/sec (warm) | 40% |
-| Cold-start load time | 20% |
-| TTFT cold | 20% |
-| Batch throughput | 20% |
-
-Both the raw metrics and score breakdown are included in every report so you can reweight offline.
-
-## Prerequisites
-
-1. **llama.cpp** — `llama-cli` must be on `PATH` (and `llama-server` for batch benchmarks).
+1. **llama.cpp** — `llama-server` must be on `PATH` or installed via `llmb setup` (default benchmarks drive the HTTP API).
    - Windows: download prebuilt ZIP from [llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases) and add the folder to `PATH`.
    - macOS/Linux: `brew install llama.cpp` or build from source.
 2. **Disk space** — models range from ~400 MB (0.5B Q4) to ~5 GB (8B Q4). The default set is ~7 GB total.
@@ -55,7 +41,7 @@ llmb init
 # 3. Download models (large download, ~7 GB for defaults)
 llmb models fetch
 
-# 4. Run the benchmark (CPU only by default)
+# 4. Run the benchmark matrix from bench.toml (default config uses cpu + gpu when available)
 llmb bench
 
 # 5. Open the report
@@ -103,38 +89,46 @@ Each run writes three files to the output directory:
 
 | File | Contents |
 |------|---------|
-| `results.json` | Canonical output: hardware info, software versions, all raw samples, computed scores |
-| `results.csv` | Flat rows — easy to import into Excel / Google Sheets for cross-machine comparison |
-| `report.html` | Self-contained HTML with Chart.js graphs (score, tok/s, load time, TTFT) |
+| `results.json` | Canonical output: hardware info, `schema_version`, every scenario’s cold/warm metrics and raw samples |
+| `results.csv` | Flat rows keyed by model × workload × device — primarily **tokens/sec**, load, TTFT |
+| `report.html` | Chart.js bar charts: warm tok/s, cold tok/s, load time, TTFT |
 
 ## Comparing machines
 
-Run `llmb bench` on each machine and collect the `results.csv` files. Because the workloads are fixed and the scoring formula is deterministic, the aggregate scores are directly comparable. You can also open multiple `results.json` files in any tool that reads JSON.
+Run `llmb bench` on each machine and collect `results.csv` (or feed several `results.json` files into **`llmb compare`**). Workloads and token budgets are fixed in the binary, so **tokens/second** columns are directly comparable given the same model file and similar llama.cpp builds.
+
+## Sample runs (four machines)
+
+These are checked-in reports from the **same workload matrix** (model **Qwen3-0.6B-Q4_K_M**, multiple scenarios on **CPU and GPU**). Numbers are **unweighted averages** across all **12** scenarios in each `results.json`, plus averages over the **6** GPU-only scenarios. Different **llama.cpp** builds and drivers apply; `llama_cpp_version` was often not recorded. Curated HTML under `reports/samples/` may still show an older layout until you re-run **`llmb bench`** with this version.
+
+| Machine (OS · CPU · accelerator) | Avg warm tok/s (12) | Avg cold tok/s (12) | Avg warm tok/s (GPU ×6) | Avg cold tok/s (GPU ×6) |
+|----------------------------------|--------------------:|--------------------:|------------------------:|------------------------:|
+| [Windows · Intel Core Ultra 9 285K · RTX 4080 SUPER](reports/samples/windows-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER__20260516T225708/report.html) | 228 | 216 | 366 | 343 |
+| [Windows · AMD Ryzen 9 9950X3D · RTX 5090](reports/samples/windows-x86_64__CPU-AMD_Ryzen_9_9950X3D_16_Core_Processor__GPU-NVIDIA_GeForce_RTX_5090__20260517T122142/report.html) | 290 | 262 | 515 | 459 |
+| [Linux · Intel Core Ultra 9 285K · RTX 4080 SUPER](reports/linux-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER__20260517T004235/report.html) | 234 | 225 | 413 | 396 |
+| [macOS · Apple M4 · Apple Silicon GPU](reports/macos-aarch64__CPU-Apple_M4__GPU-Apple_Silicon_GPU__20260516T232836/report.html) | 75 | 70 | 83 | 74 |
+
+**How to read this:** higher **tok/s** is faster generation. **Cold** = first completion after the model is loaded on the server; **warm** = subsequent repeats in the same scenario. Open each **`report.html`** for full per-scenario bars and latency columns.
 
 ## Config reference
 
 ```toml
 # bench.toml
-devices      = ["cpu"]         # "cpu", "gpu", or "auto"
-warm_runs    = 3               # warm repetitions per scenario
-batch_sizes  = [1, 4, 8]      # batch concurrency levels
-max_tokens   = 256             # default generation budget
-cpu_threads  = 0               # 0 = auto-detect
-gpu_layers   = -1              # -1 = offload all layers
-
-[scoring]
-weight_tokens_per_sec   = 0.40
-weight_load_time        = 0.20
-weight_ttft             = 0.20
-weight_batch_throughput = 0.20
+devices      = ["cpu", "gpu"]
+warm_runs    = 1
+batch_sizes  = []            # optional: e.g. [1, 4, 8] for batch experiments
+max_tokens   = 256
+cpu_threads  = 0
+gpu_layers   = -1
+mixed_gpu_layers = 16
 
 [[models]]
-name         = "Qwen2.5-0.5B-Q4_K_M"
-filename     = "qwen2.5-0.5b-instruct-q4_k_m.gguf"
+name         = "Qwen3-0.6B-Q4_K_M"
+filename     = "Qwen_Qwen3-0.6B-Q4_K_M.gguf"
 url          = "https://huggingface.co/..."
-params       = "0.5B"
+params       = "0.6B"
 quantization = "Q4_K_M"
-context_length = 2048
+context_length = 1024
 sha256       = "optional hex digest for verification"
 ```
 

@@ -40,13 +40,6 @@ gpu_layers = -1
 # Example: 16 puts the first 16 layers on GPU, the rest on CPU.
 mixed_gpu_layers = 16
 
-# ─── Scoring weights (must sum to 1.0) ───────────────────────────────────────
-[scoring]
-weight_tokens_per_sec    = 0.40   # generation speed
-weight_load_time         = 0.30   # server start + model load latency
-weight_ttft              = 0.30   # time to first token (first request)
-weight_batch_throughput  = 0.00   # disabled
-
 # ─── Models ──────────────────────────────────────────────────────────────────
 # Models are ordered small → large so the VRAM cliff is visible in plots.
 # Mix of Qwen3 (latest Alibaba series, Apr 2025) and Llama 3.2/3.1 (Meta)

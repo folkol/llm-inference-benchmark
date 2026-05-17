@@ -1,7 +1,6 @@
 use llmb::{
-    config::{BenchConfig, ScoringConfig, WorkloadConfig},
+    config::{BenchConfig, WorkloadConfig},
     metrics::{AggregatedMetrics, RawSample},
-    scoring::compute_score,
     workloads::default_workloads,
 };
 
@@ -13,16 +12,6 @@ fn test_default_config_parses() {
     let cfg: BenchConfig = toml::from_str(toml).expect("default config must parse");
     assert!(!cfg.models.is_empty(), "default config must have models");
     assert!(cfg.warm_runs > 0);
-    assert!(
-        (cfg.scoring.weight_tokens_per_sec
-            + cfg.scoring.weight_load_time
-            + cfg.scoring.weight_ttft
-            + cfg.scoring.weight_batch_throughput
-            - 1.0)
-            .abs()
-            < 1e-6,
-        "scoring weights must sum to 1.0"
-    );
 }
 
 #[test]
@@ -106,62 +95,6 @@ fn test_aggregated_metrics_with_failures() {
     let agg = AggregatedMetrics::from_samples(&samples);
     assert!((agg.success_rate - 0.5).abs() < 1e-6);
     assert!((agg.tokens_per_sec_mean - 50.0).abs() < 1.0);
-}
-
-// ─── Scoring ─────────────────────────────────────────────────────────────────
-
-fn default_scoring() -> ScoringConfig {
-    ScoringConfig {
-        weight_tokens_per_sec: 0.4,
-        weight_load_time: 0.2,
-        weight_ttft: 0.2,
-        weight_batch_throughput: 0.2,
-    }
-}
-
-#[test]
-fn test_score_range_is_0_to_100() {
-    let warm = AggregatedMetrics::from_samples(&[make_sample(30.0, 1000.0, 2000.0)]);
-    let cold = AggregatedMetrics::from_samples(&[make_sample(10.0, 3000.0, 4000.0)]);
-    let sc = compute_score(&warm, &cold, 0.0, &default_scoring());
-    assert!(sc.aggregate >= 0.0, "score must be ≥ 0");
-    assert!(sc.aggregate <= 100.0, "score must be ≤ 100");
-}
-
-#[test]
-fn test_faster_machine_scores_higher() {
-    let fast_warm = AggregatedMetrics::from_samples(&[make_sample(100.0, 500.0, 600.0)]);
-    let fast_cold = AggregatedMetrics::from_samples(&[make_sample(80.0, 500.0, 700.0)]);
-    let slow_warm = AggregatedMetrics::from_samples(&[make_sample(5.0, 10_000.0, 15_000.0)]);
-    let slow_cold = AggregatedMetrics::from_samples(&[make_sample(3.0, 10_000.0, 15_000.0)]);
-
-    let fast_score = compute_score(&fast_warm, &fast_cold, 200.0, &default_scoring()).aggregate;
-    let slow_score = compute_score(&slow_warm, &slow_cold, 2.0, &default_scoring()).aggregate;
-
-    assert!(
-        fast_score > slow_score,
-        "fast machine ({:.1}) must score higher than slow ({:.1})",
-        fast_score,
-        slow_score
-    );
-}
-
-#[test]
-fn test_score_components_sum_correctly() {
-    let warm = AggregatedMetrics::from_samples(&[make_sample(30.0, 3000.0, 4000.0)]);
-    let cold = AggregatedMetrics::from_samples(&[make_sample(30.0, 3000.0, 4000.0)]);
-    let cfg = default_scoring();
-    let bd = compute_score(&warm, &cold, 100.0, &cfg);
-
-    let reconstructed = bd.tokens_per_sec_score * cfg.weight_tokens_per_sec
-        + bd.load_time_score * cfg.weight_load_time
-        + bd.ttft_score * cfg.weight_ttft
-        + bd.batch_throughput_score * cfg.weight_batch_throughput;
-
-    assert!(
-        (bd.aggregate - reconstructed).abs() < 1e-6,
-        "aggregate must equal weighted sum of components"
-    );
 }
 
 // ─── llama timing parser ──────────────────────────────────────────────────────

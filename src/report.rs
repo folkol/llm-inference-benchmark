@@ -40,20 +40,14 @@ fn write_csv(results: &RunResults, out_dir: &Path) -> anyhow::Result<()> {
         "model",
         "workload",
         "device",
-        "tps_mean",
-        "tps_p50",
-        "tps_p95",
-        "load_time_ms",
-        "ttft_ms_mean",
-        "ttft_ms_p95",
-        "wall_ms_mean",
-        "cold_tps",
+        "warm_tokens_per_sec_mean",
+        "warm_tokens_per_sec_p50",
+        "warm_tokens_per_sec_p95",
+        "cold_tokens_per_sec_mean",
+        "cold_load_time_ms",
         "cold_ttft_ms",
-        "score",
-        "score_tps",
-        "score_load",
-        "score_ttft",
-        "score_batch",
+        "warm_ttft_ms",
+        "warm_wall_time_ms_mean",
     ])?;
 
     for s in &results.scenarios {
@@ -66,17 +60,11 @@ fn write_csv(results: &RunResults, out_dir: &Path) -> anyhow::Result<()> {
             &fmt(s.warm_metrics.tokens_per_sec_mean),
             &fmt(s.warm_metrics.tokens_per_sec_p50),
             &fmt(s.warm_metrics.tokens_per_sec_p95),
-            &fmt(s.warm_metrics.load_time_ms_mean),
-            &fmt(s.warm_metrics.ttft_ms_mean),
-            &fmt(s.warm_metrics.ttft_ms_p95),
-            &fmt(s.warm_metrics.wall_time_ms_mean),
             &fmt(s.cold_metrics.tokens_per_sec_mean),
+            &fmt(s.cold_metrics.load_time_ms_mean),
             &fmt(s.cold_metrics.ttft_ms_mean),
-            &fmt(s.score),
-            &fmt(s.score_breakdown.tokens_per_sec_score),
-            &fmt(s.score_breakdown.load_time_score),
-            &fmt(s.score_breakdown.ttft_score),
-            &fmt(s.score_breakdown.batch_throughput_score),
+            &fmt(s.warm_metrics.ttft_ms_mean),
+            &fmt(s.warm_metrics.wall_time_ms_mean),
         ])?;
     }
 
@@ -118,10 +106,10 @@ fn render_html(results: &RunResults) -> anyhow::Result<String> {
             .collect::<Vec<_>>(),
     )?;
 
-    let score_json = serde_json::to_string(
+    let cold_tps_json = serde_json::to_string(
         &scenarios
             .iter()
-            .map(|s| round2(s.score))
+            .map(|s| round2(s.cold_metrics.tokens_per_sec_mean))
             .collect::<Vec<_>>(),
     )?;
 
@@ -169,10 +157,7 @@ fn render_html(results: &RunResults) -> anyhow::Result<String> {
   th {{ background: var(--border); color: var(--muted); text-align: left; padding: 0.5rem 0.75rem; font-weight: 600; }}
   td {{ padding: 0.45rem 0.75rem; border-bottom: 1px solid var(--border); }}
   tr:hover td {{ background: rgba(124,106,247,.07); }}
-  .score {{ font-weight: 700; }}
-  .score-hi {{ color: var(--green); }}
-  .score-mid {{ color: var(--yellow); }}
-  .score-lo {{ color: var(--red); }}
+  td.num {{ text-align: right; }}
   .hw-table td:first-child {{ color: var(--muted); width: 160px; }}
 </style>
 </head>
@@ -187,10 +172,10 @@ fn render_html(results: &RunResults) -> anyhow::Result<String> {
 
 <h2>Charts</h2>
 <div class="grid">
-  <div class="card"><h3>Aggregate Score (higher = better)</h3><canvas id="chartScore"></canvas></div>
-  <div class="card"><h3>Tokens / second – warm (higher = better)</h3><canvas id="chartTps"></canvas></div>
+  <div class="card"><h3>Tokens / second — warm repeat (higher = better)</h3><canvas id="chartWarmTps"></canvas></div>
+  <div class="card"><h3>Tokens / second — first request after load (higher = better)</h3><canvas id="chartColdTps"></canvas></div>
   <div class="card"><h3>Cold-start load time (ms, lower = better)</h3><canvas id="chartLoad"></canvas></div>
-  <div class="card"><h3>Time to first token – cold (ms, lower = better)</h3><canvas id="chartTtft"></canvas></div>
+  <div class="card"><h3>Time to first token — cold (ms, lower = better)</h3><canvas id="chartTtft"></canvas></div>
 </div>
 
 <h2>Scenario Results</h2>
@@ -199,9 +184,8 @@ fn render_html(results: &RunResults) -> anyhow::Result<String> {
   <thead>
     <tr>
       <th>Model</th><th>Workload</th><th>Device</th>
-      <th>TPS (mean)</th><th>TPS (p50)</th>
+      <th>Warm tok/s</th><th>Warm tok/s (p50)</th><th>Cold tok/s</th>
       <th>Load (ms)</th><th>TTFT cold (ms)</th>
-      <th>Score</th>
     </tr>
   </thead>
   <tbody>{scenario_rows}</tbody>
@@ -210,8 +194,8 @@ fn render_html(results: &RunResults) -> anyhow::Result<String> {
 
 <script>
 const LABELS = {labels_json};
-const TPS    = {tps_json};
-const SCORE  = {score_json};
+const WARM_TPS = {tps_json};
+const COLD_TPS = {cold_tps_json};
 const LOAD   = {load_json};
 const TTFT   = {ttft_json};
 
@@ -239,8 +223,8 @@ function barChart(id, data, label, reversed) {{
   }});
 }}
 
-barChart('chartScore', SCORE, 'Score');
-barChart('chartTps',   TPS,   'tok/s');
+barChart('chartWarmTps', WARM_TPS, 'tok/s');
+barChart('chartColdTps', COLD_TPS, 'tok/s');
 barChart('chartLoad',  LOAD,  'ms', true);
 barChart('chartTtft',  TTFT,  'ms', true);
 </script>
@@ -252,7 +236,7 @@ barChart('chartTtft',  TTFT,  'ms', true);
         scenario_rows = scenario_rows,
         labels_json = labels_json,
         tps_json = tps_json,
-        score_json = score_json,
+        cold_tps_json = cold_tps_json,
         load_json = load_json,
         ttft_json = ttft_json,
     );
@@ -300,30 +284,20 @@ fn scenarios_table_rows(scenarios: &[ScenarioResult]) -> String {
     scenarios
         .iter()
         .map(|s| {
-            let sc = s.score;
-            let cls = if sc >= 70.0 {
-                "score-hi"
-            } else if sc >= 40.0 {
-                "score-mid"
-            } else {
-                "score-lo"
-            };
             format!(
                 r#"<tr>
   <td>{model}</td><td>{wl}</td><td>{dev}</td>
-  <td>{tps:.1}</td><td>{tps50:.1}</td>
-  <td>{load:.0}</td><td>{ttft:.0}</td>
-  <td class="score {cls}">{sc:.1}</td>
+  <td class="num">{wtps:.1}</td><td class="num">{wtps50:.1}</td><td class="num">{ctps:.1}</td>
+  <td class="num">{load:.0}</td><td class="num">{ttft:.0}</td>
 </tr>"#,
                 model = html_escape(&s.model_name),
                 wl = html_escape(&s.workload_label),
                 dev = html_escape(&s.device),
-                tps = s.warm_metrics.tokens_per_sec_mean,
-                tps50 = s.warm_metrics.tokens_per_sec_p50,
+                wtps = s.warm_metrics.tokens_per_sec_mean,
+                wtps50 = s.warm_metrics.tokens_per_sec_p50,
+                ctps = s.cold_metrics.tokens_per_sec_mean,
                 load = s.cold_metrics.load_time_ms_mean,
                 ttft = s.cold_metrics.ttft_ms_mean,
-                sc = sc,
-                cls = cls,
             )
         })
         .collect()

@@ -83,17 +83,17 @@ fn render(runs: &[RunResults]) -> anyhow::Result<String> {
         .collect();
     let ttft_by_machine_json = serde_json::to_string(&ttft_by_machine)?;
 
-    // ── Chart 4: aggregate score vs model, per machine ────────────────────────
-    let score_by_machine: Vec<Vec<Option<f64>>> = runs
+    // ── Chart 4: cold tok/s vs model, per machine ───────────────────────────────
+    let cold_tps_by_machine: Vec<Vec<Option<f64>>> = runs
         .iter()
         .map(|r| {
             all_models
                 .iter()
-                .map(|m| mean_score_for_model(r, m))
+                .map(|m| mean_cold_tps_for_model(r, m))
                 .collect()
         })
         .collect();
-    let score_by_machine_json = serde_json::to_string(&score_by_machine)?;
+    let cold_tps_by_machine_json = serde_json::to_string(&cold_tps_by_machine)?;
 
     // ── Table rows: every scenario from every machine ─────────────────────────
     let table_rows = table_rows(runs, &machine_labels);
@@ -131,10 +131,7 @@ fn render(runs: &[RunResults]) -> anyhow::Result<String> {
         padding: 0.5rem 0.75rem; font-weight: 600; }}
   td {{ padding: 0.45rem 0.75rem; border-bottom: 1px solid var(--border); }}
   tr:hover td {{ background: rgba(124,106,247,.07); }}
-  .score {{ font-weight: 700; }}
-  .score-hi {{ color: var(--green); }}
-  .score-mid {{ color: var(--yellow); }}
-  .score-lo {{ color: var(--red); }}
+  td.num {{ text-align: right; }}
   .legend {{ display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; font-size: 0.82rem; }}
   .legend-item {{ display: flex; align-items: center; gap: 0.4rem; }}
   .legend-dot {{ width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }}
@@ -172,8 +169,8 @@ fn render(runs: &[RunResults]) -> anyhow::Result<String> {
     <canvas id="chartTps"></canvas>
   </div>
   <div class="card">
-    <h3>Aggregate score (higher = better)</h3>
-    <canvas id="chartScore"></canvas>
+    <h3>Tokens / second — cold (first completion after load)</h3>
+    <canvas id="chartColdTps"></canvas>
   </div>
   <div class="card">
     <h3>Cold-start load time ms (lower = better)</h3>
@@ -191,7 +188,7 @@ fn render(runs: &[RunResults]) -> anyhow::Result<String> {
   <thead>
     <tr>
       <th>Machine</th><th>Model</th><th>Workload</th><th>Device</th>
-      <th>TPS (mean)</th><th>Load (ms)</th><th>TTFT cold (ms)</th><th>Score</th>
+      <th>Warm tok/s</th><th>Cold tok/s</th><th>Load (ms)</th><th>TTFT cold (ms)</th>
     </tr>
   </thead>
   <tbody>{table_rows}</tbody>
@@ -204,7 +201,7 @@ const MODELS         = {all_models_json};
 const TPS            = {tps_by_machine_json};
 const LOAD           = {load_by_machine_json};
 const TTFT           = {ttft_by_machine_json};
-const SCORE          = {score_by_machine_json};
+const COLD_TPS       = {cold_tps_by_machine_json};
 
 const PALETTE = [
   '#7c6af7','#22c55e','#f59e0b','#38bdf8','#f472b6',
@@ -257,7 +254,7 @@ function makeDatasets(data) {{
 }}
 
 lineChart('chartTps',   makeDatasets(TPS),   'tok/s');
-lineChart('chartScore', makeDatasets(SCORE), 'score');
+lineChart('chartColdTps', makeDatasets(COLD_TPS), 'tok/s');
 lineChart('chartLoad',  makeDatasets(LOAD),  'ms');
 lineChart('chartTtft',  makeDatasets(TTFT),  'ms');
 </script>
@@ -272,7 +269,7 @@ lineChart('chartTtft',  makeDatasets(TTFT),  'ms');
         tps_by_machine_json = tps_by_machine_json,
         load_by_machine_json = load_by_machine_json,
         ttft_by_machine_json = ttft_by_machine_json,
-        score_by_machine_json = score_by_machine_json,
+        cold_tps_by_machine_json = cold_tps_by_machine_json,
     );
 
     Ok(html)
@@ -334,12 +331,12 @@ fn mean_ttft_for_model(r: &RunResults, model: &str) -> Option<f64> {
     mean(&vals)
 }
 
-fn mean_score_for_model(r: &RunResults, model: &str) -> Option<f64> {
+fn mean_cold_tps_for_model(r: &RunResults, model: &str) -> Option<f64> {
     let vals: Vec<f64> = r
         .scenarios
         .iter()
-        .filter(|s| s.model_name == model)
-        .map(|s| s.score)
+        .filter(|s| s.model_name == model && s.cold_metrics.success_rate > 0.0)
+        .map(|s| s.cold_metrics.tokens_per_sec_mean)
         .collect();
     mean(&vals)
 }
@@ -386,30 +383,20 @@ fn table_rows(runs: &[RunResults], labels: &[String]) -> String {
     let mut rows = String::new();
     for (r, lbl) in runs.iter().zip(labels.iter()) {
         for s in &r.scenarios {
-            let sc = s.score;
-            let cls = if sc >= 70.0 {
-                "score-hi"
-            } else if sc >= 40.0 {
-                "score-mid"
-            } else {
-                "score-lo"
-            };
             rows.push_str(&format!(
                 r#"<tr>
   <td>{lbl}</td>
   <td>{model}</td><td>{wl}</td><td>{dev}</td>
-  <td>{tps:.1}</td><td>{load:.0}</td><td>{ttft:.0}</td>
-  <td class="score {cls}">{sc:.1}</td>
+  <td class="num">{wtps:.1}</td><td class="num">{ctps:.1}</td><td class="num">{load:.0}</td><td class="num">{ttft:.0}</td>
 </tr>"#,
                 lbl = html_escape(lbl),
                 model = html_escape(&s.model_name),
                 wl = html_escape(&s.workload_label),
                 dev = html_escape(&s.device),
-                tps = s.warm_metrics.tokens_per_sec_mean,
+                wtps = s.warm_metrics.tokens_per_sec_mean,
+                ctps = s.cold_metrics.tokens_per_sec_mean,
                 load = s.cold_metrics.load_time_ms_mean,
                 ttft = s.cold_metrics.ttft_ms_mean,
-                sc = sc,
-                cls = cls,
             ));
         }
     }

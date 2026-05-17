@@ -30,34 +30,29 @@ pub enum Backend {
 }
 
 impl Backend {
-    fn asset_keyword(&self) -> &'static str {
+    /// Keyword substring inside GitHub release asset names (zip/tar.gz).
+    /// `None` when asset selection needs special logic (Windows CUDA toolkits).
+    fn asset_keyword(&self) -> Option<&'static str> {
         match self {
-            Backend::CudaCu12 => "bin-win-cuda-cu12",
-            Backend::Vulkan => "bin-win-vulkan",
-            Backend::CpuOnly => "bin-win-noavx2",
-            Backend::MacosArm64 => "bin-macos-arm64",
-            Backend::MacosX64 => "bin-macos-x64",
-            Backend::LinuxCuda => "bin-ubuntu-x64",
-            Backend::LinuxCpu => "bin-ubuntu-x64",
+            Backend::CudaCu12 => None,
+            Backend::Vulkan => Some("bin-win-vulkan"),
+            Backend::CpuOnly => None,
+            Backend::MacosArm64 => Some("bin-macos-arm64"),
+            Backend::MacosX64 => Some("bin-macos-x64"),
+            Backend::LinuxCuda => Some("bin-ubuntu-x64"),
+            Backend::LinuxCpu => Some("bin-ubuntu-x64"),
         }
     }
 
     fn label(&self) -> &'static str {
         match self {
-            Backend::CudaCu12 => "Windows / NVIDIA CUDA 12",
+            Backend::CudaCu12 => "Windows / NVIDIA CUDA",
             Backend::Vulkan => "Windows / Vulkan (AMD / Intel GPU)",
             Backend::CpuOnly => "Windows / CPU only (no GPU)",
             Backend::MacosArm64 => "macOS / Apple Silicon",
             Backend::MacosX64 => "macOS / Intel",
             Backend::LinuxCuda => "Linux / NVIDIA CUDA",
             Backend::LinuxCpu => "Linux / CPU only",
-        }
-    }
-
-    fn cudart_keyword(&self) -> Option<&'static str> {
-        match self {
-            Backend::CudaCu12 | Backend::LinuxCuda => Some("cudart-llama-bin-win-cuda"),
-            _ => None,
         }
     }
 }
@@ -150,15 +145,40 @@ pub fn run(force: bool) -> anyhow::Result<()> {
     let release = fetch_latest_release()?;
     println!("Latest release: {}", release.tag_name.bold());
 
-    let keyword = backend.asset_keyword();
-    let main_asset = find_asset(&release.assets, keyword).ok_or_else(|| {
-        anyhow::anyhow!(
-            "No asset matching '{}' found in release {}.\n\
-             Browse manually: https://github.com/ggerganov/llama.cpp/releases",
-            keyword,
-            release.tag_name
-        )
-    })?;
+    let main_asset = match backend {
+        Backend::CudaCu12 => find_windows_cuda_main_asset(&release.assets).ok_or_else(|| {
+            anyhow::anyhow!(
+                "No Windows CUDA zip matching bin-win-cuda-*-x64 found in release {}.\n\
+                 Browse manually: https://github.com/ggerganov/llama.cpp/releases",
+                release.tag_name
+            )
+        })?,
+        Backend::CpuOnly => {
+            let kw = match std::env::consts::ARCH {
+                "aarch64" => "bin-win-cpu-arm64",
+                _ => "bin-win-cpu-x64",
+            };
+            find_asset(&release.assets, kw).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "No asset matching '{}' found in release {}.\n\
+                     Browse manually: https://github.com/ggerganov/llama.cpp/releases",
+                    kw,
+                    release.tag_name
+                )
+            })?
+        }
+        _ => {
+            let keyword = backend.asset_keyword().expect("CudaCu12/CpuOnly use dedicated matchers");
+            find_asset(&release.assets, keyword).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "No asset matching '{}' found in release {}.\n\
+                     Browse manually: https://github.com/ggerganov/llama.cpp/releases",
+                    keyword,
+                    release.tag_name
+                )
+            })?
+        }
+    };
 
     println!(
         "Downloading {} ({:.1} MB)...",
@@ -168,8 +188,10 @@ pub fn run(force: bool) -> anyhow::Result<()> {
     let archive = download_to_memory(&main_asset.browser_download_url, main_asset.size)?;
     extract_archive(&archive, &bin_dir, &main_asset.name)?;
 
-    if let Some(cudart_kw) = backend.cudart_keyword() {
-        if let Some(cudart_asset) = find_asset(&release.assets, cudart_kw) {
+    if backend == Backend::CudaCu12 {
+        if let Some(cudart_asset) =
+            find_windows_cudart_matching_llama_zip(&release.assets, &main_asset.name)
+        {
             println!(
                 "Downloading CUDA runtime {} ({:.1} MB)...",
                 cudart_asset.name.bold(),
@@ -209,6 +231,73 @@ fn find_asset<'a>(assets: &'a [Asset], keyword: &str) -> Option<&'a Asset> {
 
 fn matches_asset_name(name: &str, keyword: &str) -> bool {
     name.contains(keyword) && (name.ends_with(".zip") || name.ends_with(".tar.gz"))
+}
+
+/// llama.cpp renamed CUDA archives from `bin-win-cuda-cu12` to `bin-win-cuda-12.4-x64`, etc.
+fn find_windows_cuda_main_asset<'a>(assets: &'a [Asset]) -> Option<&'a Asset> {
+    const VERSION_HINTS: &[&str] = &[
+        "bin-win-cuda-13.1-x64",
+        "bin-win-cuda-12.4-x64",
+    ];
+    for hint in VERSION_HINTS {
+        if let Some(a) = find_asset(assets, hint) {
+            return Some(a);
+        }
+    }
+
+    let mut hits: Vec<&Asset> = assets
+        .iter()
+        .filter(|a| matches_windows_cuda_llama_zip(&a.name))
+        .collect();
+    if hits.is_empty() {
+        return None;
+    }
+
+    hits.sort_by(|a, b| {
+        let ra = asset_rank(&a.name);
+        let rb = asset_rank(&b.name);
+        ra.cmp(&rb).then_with(|| {
+            win_cuda_toolkit_version(&b.name).cmp(&win_cuda_toolkit_version(&a.name))
+        })
+    });
+    hits.into_iter().next()
+}
+
+fn matches_windows_cuda_llama_zip(name: &str) -> bool {
+    name.contains("bin-win-cuda-")
+        && name.contains("-x64")
+        && name.ends_with(".zip")
+        && !name.contains("kleidiai")
+}
+
+fn win_cuda_toolkit_version(name: &str) -> (u32, u32) {
+    let Some(rest) = name.split("bin-win-cuda-").nth(1) else {
+        return (0, 0);
+    };
+    let Some(ver) = rest.split("-x64").next() else {
+        return (0, 0);
+    };
+    let mut parts = ver.split('.');
+    let major = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let minor = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    (major, minor)
+}
+
+fn find_windows_cudart_matching_llama_zip<'a>(
+    assets: &'a [Asset],
+    llama_zip_name: &str,
+) -> Option<&'a Asset> {
+    let ver = llama_zip_name
+        .split("bin-win-cuda-")
+        .nth(1)?
+        .split("-x64")
+        .next()?;
+    let needle = format!("cudart-llama-bin-win-cuda-{ver}");
+    assets.iter().find(|a| {
+        a.name.contains(&needle)
+            && a.name.ends_with(".zip")
+            && !a.name.contains("kleidiai")
+    })
 }
 
 /// Lower rank = preferred. Prefer plain builds over optional accelerators (e.g. kleidiai).
@@ -451,5 +540,28 @@ mod tests {
     fn find_asset_rejects_unrelated_archives() {
         let assets = [asset("llama-b9189-bin-macos-x64.tar.gz")];
         assert!(find_asset(&assets, "bin-macos-arm64").is_none());
+    }
+
+    #[test]
+    fn find_windows_cuda_prefers_newer_explicit_toolkit() {
+        let assets = [
+            asset("llama-b9190-bin-win-cuda-12.4-x64.zip"),
+            asset("llama-b9190-bin-win-cuda-13.1-x64.zip"),
+        ];
+        let picked = find_windows_cuda_main_asset(&assets).unwrap();
+        assert_eq!(picked.name, "llama-b9190-bin-win-cuda-13.1-x64.zip");
+    }
+
+    #[test]
+    fn find_windows_cudart_matches_llama_zip_toolkit_version() {
+        let assets = [
+            asset("llama-b9190-bin-win-cuda-13.1-x64.zip"),
+            asset("cudart-llama-bin-win-cuda-13.1-x64.zip"),
+            asset("cudart-llama-bin-win-cuda-12.4-x64.zip"),
+        ];
+        let main = find_windows_cuda_main_asset(&assets).unwrap();
+        let cd =
+            find_windows_cudart_matching_llama_zip(&assets, &main.name).unwrap();
+        assert_eq!(cd.name, "cudart-llama-bin-win-cuda-13.1-x64.zip");
     }
 }
