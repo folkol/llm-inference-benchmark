@@ -5,3 +5,4 @@ reports/*
 !reports/samples/
 !reports/samples/**
 e2e-out.txt
+scripts/README-cross-machine-snippet.generated.md

@@ -2,11 +2,65 @@
 
 A single compiled CLI that measures LLM inference performance across machines and produces comparable **tokens/second** reports (plus load time and TTFT).
 
+## Cross-machine sample throughput
+
+These numbers come from checked-in benchmark outputs where each machine ran the **same twelve scenarios**: models **Qwen3-0.6B** and **Qwen3-4B** (Q4_K_M), workloads **Summarization**, **Code Generation**, and **Generic Assistant**, each on **CPU** and **GPU**. Every cell is the rounded mean **tokens/s** for the generation phase (**warm** = steady repeats after load; **cold** = first completion in that scenario). **Columns** put **Windows and Linux on the same physical Ultra 9 285K + RTX 4080 machine** next to each other, followed by Ryzen **9950X3D + RTX 5090** (Windows only in these samples) and **Apple M4**. **CPU** and **GPU** use separate tables so OS comparisons stay within one accelerator type. **`llama_cpp_version`** was often unset in older captures—treat cross-host deltas as directional, not laboratory-precise.
+
+**Warm throughput (mean tok/s, generation phase)**
+
+**CPU**
+
+| Scenario | [Windows · Ultra 9 285K · RTX 4080 SUPER](reports/samples/windows-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER__20260516T225708/report.html) | [Linux · Ultra 9 285K · RTX 4080 SUPER](reports/linux-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER__20260517T004235/report.html) | [Windows · Ryzen 9950X3D · RTX 5090](reports/samples/windows-x86_64__CPU-AMD_Ryzen_9_9950X3D_16_Core_Processor__GPU-NVIDIA_GeForce_RTX_5090__20260517T122142/report.html) | [macOS · Apple M4 · Apple Silicon GPU](reports/macos-aarch64__CPU-Apple_M4__GPU-Apple_Silicon_GPU__20260516T232836/report.html) |
+|---|---|---|---|---|
+| Qwen3-0.6B · Summarization | 157 | 86 | 106 | 115 |
+| Qwen3-0.6B · Code Generation | 140 | 79 | 105 | 95 |
+| Qwen3-0.6B · Generic Assistant | 145 | 82 | 111 | 104 |
+| Qwen3-4B · Summarization | 35 | 24 | 24 | 31 |
+| Qwen3-4B · Code Generation | 29 | 25 | 21 | 28 |
+| Qwen3-4B · Generic Assistant | 31 | 26 | 22 | 27 |
+
+**GPU**
+
+| Scenario | [Windows · Ultra 9 285K · RTX 4080 SUPER](reports/samples/windows-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER__20260516T225708/report.html) | [Linux · Ultra 9 285K · RTX 4080 SUPER](reports/linux-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER__20260517T004235/report.html) | [Windows · Ryzen 9950X3D · RTX 5090](reports/samples/windows-x86_64__CPU-AMD_Ryzen_9_9950X3D_16_Core_Processor__GPU-NVIDIA_GeForce_RTX_5090__20260517T122142/report.html) | [macOS · Apple M4 · Apple Silicon GPU](reports/macos-aarch64__CPU-Apple_M4__GPU-Apple_Silicon_GPU__20260516T232836/report.html) |
+|---|---|---|---|---|
+| Qwen3-0.6B · Summarization | 536 | 628 | 768 | 135 |
+| Qwen3-0.6B · Code Generation | 537 | 611 | 683 | 161 |
+| Qwen3-0.6B · Generic Assistant | 549 | 621 | 684 | 89 |
+| Qwen3-4B · Summarization | 203 | 220 | 338 | 39 |
+| Qwen3-4B · Code Generation | 185 | 199 | 308 | 36 |
+| Qwen3-4B · Generic Assistant | 188 | 201 | 310 | 36 |
+
+**Cold throughput (mean tok/s, first completion after load)**
+
+**CPU**
+
+| Scenario | [Windows · Ultra 9 285K · RTX 4080 SUPER](reports/samples/windows-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER__20260516T225708/report.html) | [Linux · Ultra 9 285K · RTX 4080 SUPER](reports/linux-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER__20260517T004235/report.html) | [Windows · Ryzen 9950X3D · RTX 5090](reports/samples/windows-x86_64__CPU-AMD_Ryzen_9_9950X3D_16_Core_Processor__GPU-NVIDIA_GeForce_RTX_5090__20260517T122142/report.html) | [macOS · Apple M4 · Apple Silicon GPU](reports/macos-aarch64__CPU-Apple_M4__GPU-Apple_Silicon_GPU__20260516T232836/report.html) |
+|---|---|---|---|---|
+| Qwen3-0.6B · Summarization | 161 | 85 | 109 | 110 |
+| Qwen3-0.6B · Code Generation | 138 | 79 | 103 | 91 |
+| Qwen3-0.6B · Generic Assistant | 140 | 82 | 107 | 114 |
+| Qwen3-4B · Summarization | 32 | 24 | 24 | 31 |
+| Qwen3-4B · Code Generation | 31 | 23 | 22 | 28 |
+| Qwen3-4B · Generic Assistant | 31 | 25 | 22 | 29 |
+
+**GPU**
+
+| Scenario | [Windows · Ultra 9 285K · RTX 4080 SUPER](reports/samples/windows-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER__20260516T225708/report.html) | [Linux · Ultra 9 285K · RTX 4080 SUPER](reports/linux-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER__20260517T004235/report.html) | [Windows · Ryzen 9950X3D · RTX 5090](reports/samples/windows-x86_64__CPU-AMD_Ryzen_9_9950X3D_16_Core_Processor__GPU-NVIDIA_GeForce_RTX_5090__20260517T122142/report.html) | [macOS · Apple M4 · Apple Silicon GPU](reports/macos-aarch64__CPU-Apple_M4__GPU-Apple_Silicon_GPU__20260516T232836/report.html) |
+|---|---|---|---|---|
+| Qwen3-0.6B · Summarization | 429 | 543 | 498 | 121 |
+| Qwen3-0.6B · Code Generation | 527 | 605 | 681 | 113 |
+| Qwen3-0.6B · Generic Assistant | 543 | 624 | 678 | 97 |
+| Qwen3-4B · Summarization | 183 | 205 | 277 | 39 |
+| Qwen3-4B · Code Generation | 186 | 199 | 309 | 35 |
+| Qwen3-4B · Generic Assistant | 188 | 201 | 309 | 36 |
+
+_Regenerate these tables and the HTML view with `python scripts/gen_cross_machine_matrix.py` after updating sample `results.json` files._
+
 ## What it measures
 
 | Dimension | Details |
 |-----------|---------|
-| **Models** | Any GGUF model; defaults include Qwen2.5 (0.5B–3B) and Llama-3.2 (1B/3B) |
+| **Models** | Any GGUF model; curated samples above use **Qwen3** (0.6B / 4B); defaults in `bench.toml` may include additional families |
 | **Weight sizes** | Configurable; start with Q4_K_M quantized models that run on CPU |
 | **Workloads** | Summarization, code generation, generic assistant (fixed prompts for reproducibility) |
 | **Devices** | `cpu`, `gpu`, `auto` via llama.cpp flags |
@@ -95,20 +149,7 @@ Each run writes three files to the output directory:
 
 ## Comparing machines
 
-Run `llmb bench` on each machine and collect `results.csv` (or feed several `results.json` files into **`llmb compare`**). Workloads and token budgets are fixed in the binary, so **tokens/second** columns are directly comparable given the same model file and similar llama.cpp builds.
-
-## Sample runs (four machines)
-
-These are checked-in reports from the **same workload matrix** (model **Qwen3-0.6B-Q4_K_M**, multiple scenarios on **CPU and GPU**). Numbers are **unweighted averages** across all **12** scenarios in each `results.json`, plus averages over the **6** GPU-only scenarios. Different **llama.cpp** builds and drivers apply; `llama_cpp_version` was often not recorded. Curated HTML under `reports/samples/` may still show an older layout until you re-run **`llmb bench`** with this version.
-
-| Machine (OS · CPU · accelerator) | Avg warm tok/s (12) | Avg cold tok/s (12) | Avg warm tok/s (GPU ×6) | Avg cold tok/s (GPU ×6) |
-|----------------------------------|--------------------:|--------------------:|------------------------:|------------------------:|
-| [Windows · Intel Core Ultra 9 285K · RTX 4080 SUPER](reports/samples/windows-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER__20260516T225708/report.html) | 228 | 216 | 366 | 343 |
-| [Windows · AMD Ryzen 9 9950X3D · RTX 5090](reports/samples/windows-x86_64__CPU-AMD_Ryzen_9_9950X3D_16_Core_Processor__GPU-NVIDIA_GeForce_RTX_5090__20260517T122142/report.html) | 290 | 262 | 515 | 459 |
-| [Linux · Intel Core Ultra 9 285K · RTX 4080 SUPER](reports/linux-x86_64__CPU-Intel_Core_Ultra_9_285K__GPU-NVIDIA_GeForce_RTX_4080_SUPER__20260517T004235/report.html) | 234 | 225 | 413 | 396 |
-| [macOS · Apple M4 · Apple Silicon GPU](reports/macos-aarch64__CPU-Apple_M4__GPU-Apple_Silicon_GPU__20260516T232836/report.html) | 75 | 70 | 83 | 74 |
-
-**How to read this:** higher **tok/s** is faster generation. **Cold** = first completion after the model is loaded on the server; **warm** = subsequent repeats in the same scenario. Open each **`report.html`** for full per-scenario bars and latency columns.
+Run `llmb bench` on each machine and collect `results.csv` (or feed several `results.json` files into **`llmb compare`**). Workloads and token budgets are fixed in the binary, so **tokens/second** columns are directly comparable given the same model file and similar llama.cpp builds. Per-scenario matrices at the top of this README mirror those checked-in runs; **`report.html`** for each machine adds TTFT and load-time plots.
 
 ## Config reference
 
