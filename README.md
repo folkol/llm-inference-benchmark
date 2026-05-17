@@ -6,6 +6,10 @@ A single compiled CLI that measures LLM inference performance across machines an
 
 These numbers come from checked-in benchmark outputs where each machine ran the **same twelve scenarios**: models **Qwen3-0.6B** and **Qwen3-4B** (Q4_K_M), workloads **Summarization**, **Code Generation**, and **Generic Assistant**, each on **CPU** and **GPU**. Every cell is the rounded mean **tokens/s** for the generation phase (**warm** = steady repeats after load; **cold** = first completion in that scenario). **Columns** put **Windows and Linux on the same physical Ultra 9 285K + RTX 4080 machine** next to each other, followed by Ryzen **9950X3D + RTX 5090** (Windows only in these samples) and **Apple M4**. **CPU** and **GPU** use separate tables so OS comparisons stay within one accelerator type. **`llama_cpp_version`** was often unset in older captures—treat cross-host deltas as directional, not laboratory-precise.
 
+Do not treat this as a universal model-family ranking. These samples cover only two Qwen3 Q4_K_M models; other families, quantizations, prompt shapes, long-context runs, and larger models can shift bottlenecks substantially. In particular, larger models may hit VRAM/offload cliffs where throughput changes nonlinearly.
+
+Scenario labels: **Summarization** asks for a one-sentence summary of a fixed ~600-token article and caps output at 10 tokens; **Code Generation** asks for a Python `merge_sorted_arrays` implementation plus asserts and caps output at 512 tokens; **Generic Assistant** asks for practical planning advice for a 7-day solo hiking trip and caps output at 256 tokens.
+
 **Warm throughput (mean tok/s, generation phase)**
 
 **CPU**
