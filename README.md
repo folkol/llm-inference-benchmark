@@ -60,6 +60,31 @@ Scenario labels: **Summarization** asks for a one-sentence summary of a fixed ~6
 
 _Regenerate these tables and the HTML view with `python scripts/gen_cross_machine_matrix.py` after updating sample `results.json` files._
 
+## Latest local run (Windows · Ultra 9 285K · RTX 4080 SUPER)
+
+This run (`20260517T113755`) uses the expanded six-model matrix in `bench.toml`. Values are rounded mean generation **tokens/s**; **warm** is the repeat after load and **cold** is the first completion in that scenario.
+
+| Model / workload | CPU warm | CPU cold | GPU warm | GPU cold |
+|---|---:|---:|---:|---:|
+| Qwen3-0.6B · Summarization | 156 | 157 | 540 | 341 |
+| Qwen3-0.6B · Code Generation | 139 | 138 | 500 | 499 |
+| Qwen3-0.6B · Generic Assistant | 139 | 141 | 507 | 501 |
+| SmolLM3-3B · Summarization | 45 | 45 | 239 | 212 |
+| SmolLM3-3B · Code Generation | 40 | 40 | 223 | 225 |
+| SmolLM3-3B · Generic Assistant | 40 | 41 | 223 | 222 |
+| Qwen3-4B · Summarization | 35 | 35 | 189 | 169 |
+| Qwen3-4B · Code Generation | 31 | 31 | 175 | 175 |
+| Qwen3-4B · Generic Assistant | 31 | 31 | 176 | 177 |
+| Gemma-3-4B-IT · Summarization | 35 | 34 | 167 | 160 |
+| Gemma-3-4B-IT · Code Generation | 31 | 31 | 164 | 164 |
+| Gemma-3-4B-IT · Generic Assistant | 31 | 31 | 164 | 164 |
+| Phi-4-mini-instruct · Summarization | 36 | 36 | 206 | 188 |
+| Phi-4-mini-instruct · Code Generation | 33 | 33 | 188 | 189 |
+| Phi-4-mini-instruct · Generic Assistant | 33 | 33 | 190 | 190 |
+| Qwen3-8B · Summarization | 20 | 20 | 122 | 115 |
+| Qwen3-8B · Code Generation | 18 | 18 | 110 | 110 |
+| Qwen3-8B · Generic Assistant | 18 | 18 | 110 | 110 |
+
 ## What it measures
 
 | Dimension | Details |
